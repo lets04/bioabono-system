@@ -265,8 +265,6 @@ El ADMIN puede:
 * Filtrar por fecha.
 * Consultar entradas.
 * Consultar salidas.
-* Consultar el usuario que realizó cada operación.
-* Consultar referencias de las operaciones.
 
 ## 8.5 Reportes
 
@@ -1884,118 +1882,6 @@ Especialmente probar las transacciones de compra, venta y consignación.
 
 ---
 
-# 61. SEED INICIAL
-
-El sistema debe poder disponer de un seed de desarrollo.
-
-El seed puede contener:
-
-* Usuario ADMIN.
-* Usuario EMPLEADO.
-* Categorías.
-* Productos iniciales basados en el catálogo real proporcionado.
-
-Los datos de seed deben identificarse claramente como datos iniciales de
-desarrollo.
-
-No utilizar estadísticas ficticias como si fueran datos reales de
-producción.
-
----
-
-# 62. CATÁLOGO DE PRODUCTOS
-
-El documento `lista de productos.pdf` proporcionado por BIOABONO es la
-referencia para la información de productos, cantidades, unidades y
-precios disponibles en el catálogo.
-
-El agente debe utilizar dicho documento como fuente al preparar los
-datos iniciales.
-
-No inventar productos ni presentaciones que no estén respaldados por el
-catálogo, salvo que el usuario posteriormente solicite agregarlos.
-
----
-
-# 63. DESPLIEGUE
-
-## Desarrollo
-
-```text
-Frontend
-React + Vite
-
-Backend
-Node.js + Elysia
-
-Database
-PostgreSQL local
-
-Administración DB
-pgAdmin 4
-```
-
-## Producción
-
-```text
-Frontend
-      ↓ HTTPS
-Backend Node.js + Elysia
-      ↓
-PostgreSQL GCOM
-```
-
-El sitio público existente de BIOABONO no debe modificarse.
-
-Se podrá utilizar:
-
-```text
-admin.bioabono.com
-```
-
-y, si la infraestructura lo permite:
-
-```text
-api.bioabono.com
-```
-
-Antes del despliegue se debe verificar con GCOM:
-
-* Versión de Node.js.
-* Forma de ejecutar aplicaciones Node.js.
-* Configuración de procesos persistentes.
-* Reverse proxy.
-* Variables de entorno.
-* PostgreSQL.
-* SSL.
-* Dominios/subdominios.
-
----
-
-# 64. GIT Y GITHUB
-
-Utilizar Git y GitHub.
-
-Ramas recomendadas:
-
-```text
-main
-develop
-feature/*
-fix/*
-```
-
-Commits descriptivos:
-
-```text
-feat(products): add product registration
-feat(sales): implement sale creation
-feat(inventory): add kardex movements
-feat(consignations): implement liquidation
-fix(inventory): prevent negative stock
-```
-
----
 
 # 65. ORDEN DE IMPLEMENTACIÓN
 
