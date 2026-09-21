@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# Build
+dist/
+build/
+
+# TypeScript
+*.tsbuildinfo
+
+# Vite
+.vite/
+
+# OS
+.DS_Store
+Thumbs.db
+
+backend/drizzle/meta/_journal.json.tmp
+npm-debug.log*
+
+# Official price list - used later for seed
+LISTA DE PRECIOS INTERNA SUPERMERCADO DEL ABONO.xlsx
