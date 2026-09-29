@@ -1,6 +1,7 @@
 import { asc, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import {
+  consignations,
   customers,
   inventoryMovements,
   productPresentations,
@@ -11,8 +12,6 @@ import {
 
 function derivedPrice(pvp: number, tipoPrecio: string): number {
   switch (tipoPrecio) {
-    case "CONSIGNACION":
-      return pvp * 0.8;
     case "CONTADO":
       return pvp * 0.75;
     case "MAYORISTA":
@@ -37,9 +36,12 @@ export async function listSales(search?: string) {
       total: sales.total,
       estado: sales.estado,
       observacion: sales.observacion,
+      consignacionId: sales.consignacionId,
+      consignacionNumero: consignations.numero,
     })
     .from(sales)
     .leftJoin(customers, eq(sales.clienteId, customers.id))
+    .leftJoin(consignations, eq(sales.consignacionId, consignations.id))
     .where(
       term
         ? or(
@@ -79,9 +81,12 @@ export async function getSaleById(id: number) {
       total: sales.total,
       estado: sales.estado,
       observacion: sales.observacion,
+      consignacionId: sales.consignacionId,
+      consignacionNumero: consignations.numero,
     })
     .from(sales)
     .leftJoin(customers, eq(sales.clienteId, customers.id))
+    .leftJoin(consignations, eq(sales.consignacionId, consignations.id))
     .where(eq(sales.id, id))
     .limit(1);
   if (!sale) return null;

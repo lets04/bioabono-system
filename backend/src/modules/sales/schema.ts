@@ -8,7 +8,7 @@ const numericString = z
 export const saleCreateSchema = z.object({
   clienteId: z.number().int().positive().optional().nullable(),
   fecha: z.string().trim().optional().nullable(),
-  tipoPrecio: z.enum(["PVP", "CONSIGNACION", "CONTADO", "MAYORISTA"]).optional().default("PVP"),
+  tipoPrecio: z.enum(["PVP", "CONTADO", "MAYORISTA"]).optional().default("PVP"),
   observacion: z.string().trim().max(2000).optional().nullable(),
   detalles: z
     .array(
@@ -19,7 +19,7 @@ export const saleCreateSchema = z.object({
           .refine((v) => Number(v) >= 0 && Number(v) <= 100, "Descuento debe ser entre 0 y 100")
           .optional()
           .default("0"),
-        tipoPrecio: z.enum(["PVP", "CONSIGNACION", "CONTADO", "MAYORISTA"]).optional(),
+        tipoPrecio: z.enum(["PVP", "CONTADO", "MAYORISTA"]).optional(),
       }),
     )
     .min(1, "Debe incluir al menos un producto"),
