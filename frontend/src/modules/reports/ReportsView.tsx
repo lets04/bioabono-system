@@ -1,15 +1,17 @@
 import { useState } from "react";
-import { BarChart3, Package, ShoppingCart, Receipt, ClipboardList, Printer } from "lucide-react";
+import { BarChart3, Handshake, Package, ShoppingCart, Receipt, ClipboardList, Printer } from "lucide-react";
 import { PurchaseReport } from "./PurchaseReport";
 import { SalesReport } from "./SalesReport";
 import { InventoryReport } from "./InventoryReport";
 import { ProductReport } from "./ProductReport";
+import { ConsignationsReport } from "./ConsignationsReport";
 
-type Tab = "purchases" | "sales" | "inventory" | "products";
+type Tab = "purchases" | "sales" | "inventory" | "products" | "consignations";
 
 const tabs: Array<{ id: Tab; label: string; desc: string; icon: any }> = [
   { id: "purchases", label: "Compras", desc: "Historial y totales por proveedor", icon: ShoppingCart },
   { id: "sales", label: "Ventas", desc: "Ventas, descuentos y clientes", icon: Receipt },
+  { id: "consignations", label: "Consignaciones", desc: "Entregas, devoluciones y ventas", icon: Handshake },
   { id: "inventory", label: "Inventario", desc: "Stock actual por presentación", icon: ClipboardList },
   { id: "products", label: "Productos", desc: "Catálogo, PVP y último precio", icon: Package },
 ];
@@ -19,7 +21,7 @@ export function ReportsView() {
 
   return (
     <div className="grid gap-6">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {tabs.map((t) => {
           const Icon = t.icon;
           const isActive = active === t.id;
@@ -40,6 +42,7 @@ export function ReportsView() {
       <div className="rounded-lg border border-stone-200 bg-white p-4 sm:p-6">
         {active === "purchases" && <PurchaseReport />}
         {active === "sales" && <SalesReport />}
+        {active === "consignations" && <ConsignationsReport />}
         {active === "inventory" && <InventoryReport />}
         {active === "products" && <ProductReport />}
       </div>
