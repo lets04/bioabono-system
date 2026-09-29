@@ -1,5 +1,5 @@
 import { apiRequest } from "./client";
-import type { PurchasesReport, SalesReport, InventoryReport, ProductsReport, ReportFilters } from "../types";
+import type { PurchasesReport, SalesReport, InventoryReport, ProductsReport, ConsignationsReport, ReportFilters } from "../types";
 
 function toQuery(filters: ReportFilters): string {
   const params = new URLSearchParams();
@@ -38,6 +38,7 @@ export const reportsApi = {
   sales: (filters: ReportFilters) => apiRequest<SalesReport>(`/reports/sales${toQuery(filters)}`),
   inventory: (filters: ReportFilters) => apiRequest<InventoryReport>(`/reports/inventory${toQuery(filters)}`),
   products: (filters: ReportFilters) => apiRequest<ProductsReport>(`/reports/products${toQuery(filters)}`),
+  consignations: (filters: ReportFilters) => apiRequest<ConsignationsReport>(`/reports/consignations${toQuery(filters)}`),
   exportPurchases: (filters: ReportFilters) => downloadExport(`/reports/purchases/export${toQuery(filters)}`, `reporte-compras-${new Date().toISOString().slice(0, 10)}.xlsx`),
   exportSales: (filters: ReportFilters) => downloadExport(`/reports/sales/export${toQuery(filters)}`, `reporte-ventas-${new Date().toISOString().slice(0, 10)}.xlsx`),
   exportInventory: (filters: ReportFilters) => downloadExport(`/reports/inventory/export${toQuery(filters)}`, `reporte-inventario-${new Date().toISOString().slice(0, 10)}.xlsx`),
