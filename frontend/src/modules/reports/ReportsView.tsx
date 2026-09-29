@@ -46,13 +46,6 @@ export function ReportsView() {
         {active === "inventory" && <InventoryReport />}
         {active === "products" && <ProductReport />}
       </div>
-
-      <div className="rounded-lg border border-stone-200 bg-stone-50 p-4 text-xs text-stone-500">
-        <div className="flex items-center gap-2 font-semibold text-stone-700">
-          <BarChart3 size={14} /> Reportes con datos reales de PostgreSQL — No se usan datos mock
-        </div>
-        <p className="mt-1">Kardex muestra movimientos; Reportes resumen negocio (totales, por proveedor/cliente, stock).</p>
-      </div>
     </div>
   );
 }

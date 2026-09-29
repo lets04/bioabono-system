@@ -1,4 +1,4 @@
-import { BarChart3, Receipt, ShoppingCart, Truck, Users } from "lucide-react";
+import { BarChart3, Receipt, ShoppingCart, Handshake, Users } from "lucide-react";
 import { MetricCard } from "../../components/ui/MetricCard";
 import { EmptyState } from "../../components/ui/EmptyState";
 import type { Product, View } from "../../types";
@@ -29,7 +29,7 @@ export function DashboardView({ products, activeProducts, lowStock, onNavigate }
           { label: "Ventas", icon: Receipt, view: "sales" as View },
           { label: "Compras", icon: ShoppingCart, view: "purchases" as View },
           { label: "Clientes", icon: Users, view: "customers" as View },
-          { label: "Proveedores", icon: Truck, view: "suppliers" as View },
+          { label: "Consignaciones", icon: Handshake, view: "consignations" as View },
           { label: "Reportes", icon: BarChart3, view: "reports" as View },
         ].map((item) => {
           const Icon = item.icon;
