@@ -30,9 +30,9 @@ export function SalesView() {
     mutationFn: (payload: {
       clienteId: number | null;
       fecha?: string;
-      tipoPrecio: "PVP" | "CONSIGNACION" | "CONTADO" | "MAYORISTA";
+      tipoPrecio: "PVP" | "CONTADO" | "MAYORISTA";
       observacion?: string | null;
-      detalles: Array<{ presentacionId: number; cantidad: number; descuentoPorcentaje: string; tipoPrecio: "PVP" | "CONSIGNACION" | "CONTADO" | "MAYORISTA" }>;
+      detalles: Array<{ presentacionId: number; cantidad: number; descuentoPorcentaje: string; tipoPrecio: "PVP" | "CONTADO" | "MAYORISTA" }>;
     }) => salesApi.create(payload),
     onSuccess: (sale) => {
       queryClient.invalidateQueries({ queryKey: ["sales"] });
@@ -86,7 +86,12 @@ export function SalesView() {
               <tbody className="divide-y divide-stone-100">
                 {(salesQuery.data ?? []).map((sale) => (
                   <tr key={sale.id}>
-                    <td className="px-4 py-3 font-mono font-semibold text-bio-dark">{sale.numero}</td>
+                    <td className="px-4 py-3 font-mono font-semibold text-bio-dark">
+                      {sale.numero}
+                      {sale.consignacionNumero && (
+                        <span className="mt-0.5 block max-w-fit rounded bg-bio-green/10 px-1.5 py-0.5 text-[10px] font-semibold text-bio-dark">Consig. {sale.consignacionNumero}</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-stone-600">{new Date(sale.fecha).toLocaleDateString("es-BO")}</td>
                     <td className="px-4 py-3 font-medium text-stone-800">{sale.clienteNombre ?? "Cliente mostrador"}</td>
                     <td className="px-4 py-3 text-right">{sale.lineas}</td>
