@@ -146,7 +146,10 @@ export function SalesReport() {
                     <tr key={`${r.id}-${r.presentacionId}-${idx}`}>
                       <td className="px-3 py-2 text-xs">{new Date(r.fecha).toLocaleDateString("es-BO")}</td>
                       <td className="px-3 py-2 font-mono text-xs">{r.numero}</td>
-                      <td className="px-3 py-2">{r.clienteNombre ?? "Mostrador"}</td>
+                      <td className="px-3 py-2">
+                        {r.clienteNombre ?? "Mostrador"}
+                        {r.consignacionNumero && <span className="mt-0.5 block max-w-fit rounded bg-bio-green/10 px-1.5 py-0.5 text-[10px] font-semibold text-bio-dark">Consig. {r.consignacionNumero}</span>}
+                      </td>
                       <td className="px-3 py-2 font-mono text-xs">{r.codigo}</td>
                       <td className="px-3 py-2">
                         {r.productoNombre} {r.cantidadPresentacion} {r.unidadMedida}
