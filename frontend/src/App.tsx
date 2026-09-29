@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BarChart3, FolderTree, LayoutDashboard, Package, Receipt, ShoppingCart, Truck, Users } from "lucide-react";
+import { BarChart3, FolderTree, Handshake, LayoutDashboard, Package, Receipt, ShoppingCart, Truck, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AppLayout } from "./layouts/AppLayout";
 import { DashboardView } from "./modules/dashboard/DashboardView";
@@ -7,11 +7,11 @@ import { ProductsView } from "./modules/products/ProductsView";
 import { CategoriesView } from "./modules/categories/CategoriesView";
 import { SuppliersView } from "./modules/suppliers/SuppliersView";
 import { PurchasesView } from "./modules/purchases/PurchasesView";
+import { ConsignationsView } from "./modules/consignations/ConsignationsView";
 import { CustomersView } from "./modules/customers/CustomersView";
 import { SalesView } from "./modules/sales/SalesView";
 import { InventoryView } from "./modules/inventory/InventoryView";
 import { ReportsView } from "./modules/reports/ReportsView";
-import { PendingModule } from "./modules/shared/PendingModule";
 import { useProducts } from "./hooks/useProducts";
 import { useCategories } from "./hooks/useCategories";
 import { useSuppliers } from "./hooks/useSuppliers";
@@ -22,6 +22,7 @@ const navItems = [
   { id: "dashboard", label: "Inicio", icon: LayoutDashboard },
   { id: "sales", label: "Ventas", icon: Receipt },
   { id: "purchases", label: "Compras", icon: ShoppingCart },
+  { id: "consignations", label: "Consignaciones", icon: Handshake },
   { id: "customers", label: "Clientes", icon: Users },
   { id: "suppliers", label: "Proveedores", icon: Truck },
   { id: "products", label: "Productos", icon: Package },
@@ -92,6 +93,8 @@ export function App() {
       )}
 
       {activeView === "purchases" && <PurchasesView />}
+
+      {activeView === "consignations" && <ConsignationsView />}
 
       {activeView === "customers" && (
         <CustomersView
