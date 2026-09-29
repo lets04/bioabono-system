@@ -29,3 +29,10 @@ export function useProductsReport(filters: ReportFilters) {
     queryFn: () => reportsApi.products(filters),
   });
 }
+
+export function useConsignationsReport(filters: ReportFilters) {
+  return useQuery({
+    queryKey: ["reports", "consignations", filters],
+    queryFn: () => reportsApi.consignations(filters),
+  });
+}
