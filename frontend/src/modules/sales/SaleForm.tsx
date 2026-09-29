@@ -18,17 +18,15 @@ type Props = {
   onSubmit: (payload: {
     clienteId: number | null;
     fecha?: string;
-    tipoPrecio: "PVP" | "CONSIGNACION" | "CONTADO" | "MAYORISTA";
+    tipoPrecio: "PVP" | "CONTADO" | "MAYORISTA";
     observacion?: string | null;
-    detalles: Array<{ presentacionId: number; cantidad: number; descuentoPorcentaje: string; tipoPrecio: "PVP" | "CONSIGNACION" | "CONTADO" | "MAYORISTA" }>;
+    detalles: Array<{ presentacionId: number; cantidad: number; descuentoPorcentaje: string; tipoPrecio: "PVP" | "CONTADO" | "MAYORISTA" }>;
   }) => void;
   onCancel: () => void;
 };
 
 function precioConTipo(pvp: number, tipo: string): number {
   switch (tipo) {
-    case "CONSIGNACION":
-      return pvp * 0.8;
     case "CONTADO":
       return pvp * 0.75;
     case "MAYORISTA":
@@ -41,7 +39,7 @@ function precioConTipo(pvp: number, tipo: string): number {
 export function SaleForm({ customers, products, isSaving, error, onSubmit, onCancel }: Props) {
   const [clienteId, setClienteId] = useState<string>("");
   const [fecha, setFecha] = useState<string>(new Date().toISOString().slice(0, 10));
-  const [tipoPrecio, setTipoPrecio] = useState<"PVP" | "CONSIGNACION" | "CONTADO" | "MAYORISTA">("PVP");
+  const [tipoPrecio, setTipoPrecio] = useState<"PVP" | "CONTADO" | "MAYORISTA">("PVP");
   const [observacion, setObservacion] = useState<string>("");
   const [lines, setLines] = useState<Line[]>([{ presentacionId: "", cantidad: "1", descuentoPorcentaje: "0" }]);
 
@@ -132,7 +130,6 @@ export function SaleForm({ customers, products, isSaving, error, onSubmit, onCan
         <Field label="Tipo de precio">
           <select value={tipoPrecio} onChange={(e) => setTipoPrecio(e.target.value as any)} className="input">
             <option value="PVP">PVP</option>
-            <option value="CONSIGNACION">P CONS (×0.80)</option>
             <option value="CONTADO">PVC (×0.75)</option>
             <option value="MAYORISTA">PVM (×0.70)</option>
           </select>
