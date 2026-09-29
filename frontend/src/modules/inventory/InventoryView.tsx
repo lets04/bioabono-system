@@ -41,7 +41,8 @@ export function InventoryView({ products, isLoading }: Props) {
         <EmptyState text="Cargando inventario..." />
       ) : (
         <div className="mt-4 overflow-hidden rounded-lg border border-stone-200 bg-white">
-          <table className="w-full min-w-[820px] text-left text-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[820px] text-left text-sm">
             <thead className="bg-stone-50 text-xs uppercase text-stone-500">
               <tr>
                 <th className="px-4 py-3">Código</th>
@@ -75,6 +76,7 @@ export function InventoryView({ products, isLoading }: Props) {
               })}
             </tbody>
           </table>
+          </div>
           {rows.length === 0 && <EmptyState text="No hay presentaciones en inventario." />}
         </div>
       )}

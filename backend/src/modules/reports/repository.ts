@@ -2,6 +2,8 @@ import { and, asc, desc, eq, gte, ilike, lte, or, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import {
   categories,
+  consignmentDetails,
+  consignations,
   customers,
   productPresentations,
   products,
@@ -127,6 +129,8 @@ export async function getSalesReport(filters: ReportFilters) {
       clienteId: sales.clienteId,
       clienteNombre: customers.nombre,
       tipoPrecio: saleDetails.tipoPrecio,
+      consignacionId: sales.consignacionId,
+      consignacionNumero: consignations.numero,
       presentacionId: saleDetails.presentacionId,
       codigo: productPresentations.codigo,
       cantidadPresentacion: productPresentations.cantidad,
@@ -143,6 +147,7 @@ export async function getSalesReport(filters: ReportFilters) {
     })
     .from(sales)
     .leftJoin(customers, eq(sales.clienteId, customers.id))
+    .leftJoin(consignations, eq(sales.consignacionId, consignations.id))
     .innerJoin(saleDetails, eq(saleDetails.ventaId, sales.id))
     .leftJoin(productPresentations, eq(saleDetails.presentacionId, productPresentations.id))
     .leftJoin(products, eq(productPresentations.productoId, products.id))
@@ -309,6 +314,75 @@ export async function getProductsReport(filters: ReportFilters) {
       totalPresentaciones: rows.length,
       sinStock: rows.filter((r) => r.stockActual === 0).length,
       bajoStock: rows.filter((r) => r.stockActual > 0 && r.stockActual <= r.stockMinimo).length,
+    },
+  };
+}
+
+// CONSIGNATIONS REPORT
+export async function getConsignationsReport(filters: ReportFilters) {
+  const from = parseDate(filters.from);
+  const to = parseDate(filters.to);
+  const toEnd = to ? new Date(to.getTime() + 24 * 60 * 60 * 1000 - 1) : undefined;
+
+  const conditions: any[] = [];
+  if (from) conditions.push(gte(consignations.fechaEntrega, from));
+  if (toEnd) conditions.push(lte(consignations.fechaEntrega, toEnd));
+  if (filters.estado === "PENDIENTE" || filters.estado === "LIQUIDADA")
+    conditions.push(eq(consignations.estado, filters.estado as any));
+
+  const rows = await db
+    .select({
+      id: consignations.id,
+      numero: consignations.numero,
+      fechaEntrega: consignations.fechaEntrega,
+      clienteId: consignations.clienteId,
+      clienteNombre: customers.nombre,
+      estado: consignations.estado,
+      observacion: consignations.observacion,
+      presentacionId: consignmentDetails.presentacionId,
+      codigo: productPresentations.codigo,
+      cantidadPresentacion: productPresentations.cantidad,
+      unidadMedida: productPresentations.unidadMedida,
+      productoNombre: products.nombre,
+      productoAbreviacion: products.abreviacion,
+      cantidadEntregada: consignmentDetails.cantidadEntregada,
+      cantidadVendida: consignmentDetails.cantidadVendida,
+      cantidadDevuelta: consignmentDetails.cantidadDevuelta,
+      precioConsignacion: consignmentDetails.precioConsignacion,
+      importeVendido: consignmentDetails.importeVendido,
+    })
+    .from(consignations)
+    .leftJoin(customers, eq(consignations.clienteId, customers.id))
+    .innerJoin(consignmentDetails, eq(consignmentDetails.consignacionId, consignations.id))
+    .leftJoin(productPresentations, eq(consignmentDetails.presentacionId, productPresentations.id))
+    .leftJoin(products, eq(productPresentations.productoId, products.id))
+    .where(conditions.length ? and(...conditions) : undefined)
+    .orderBy(desc(consignations.fechaEntrega), asc(consignmentDetails.id));
+
+  const consignationIds = [...new Set(rows.map((r) => r.id))];
+  const summaryRows =
+    consignationIds.length > 0
+      ? await db
+          .select({
+            estado: consignations.estado,
+            count: sql<number>`count(*)::int`,
+          })
+          .from(consignations)
+          .where(conditions.length ? and(...conditions) : undefined)
+          .groupBy(consignations.estado)
+      : [];
+
+  const pendientes = summaryRows.find((r) => r.estado === "PENDIENTE")?.count ?? 0;
+  const liquidadas = summaryRows.find((r) => r.estado === "LIQUIDADA")?.count ?? 0;
+  const totalVendido = rows.reduce((sum, r) => sum + Number(r.importeVendido), 0);
+
+  return {
+    rows,
+    summary: {
+      cantidadConsignaciones: consignationIds.length,
+      pendientes,
+      liquidadas,
+      totalVendido: totalVendido.toFixed(2),
     },
   };
 }

@@ -30,6 +30,11 @@ export async function getProductsReport(query: unknown) {
   return repository.getProductsReport(filters);
 }
 
+export async function getConsignationsReport(query: unknown) {
+  const filters = reportFiltersSchema.parse(query);
+  return repository.getConsignationsReport(filters);
+}
+
 export async function exportPurchasesExcel(query: unknown) {
   const filters = reportFiltersSchema.parse(query);
   const data = await repository.getPurchasesReport(filters);

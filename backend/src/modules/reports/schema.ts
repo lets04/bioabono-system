@@ -7,7 +7,7 @@ export const reportFiltersSchema = z.object({
   clienteId: z.coerce.number().int().positive().optional().nullable(),
   tipoPrecio: z.enum(["PVP", "CONSIGNACION", "CONTADO", "MAYORISTA"]).optional().nullable(),
   categoriaId: z.coerce.number().int().positive().optional().nullable(),
-  estado: z.enum(["bajo", "sin", "normal", "activo", "inactivo", "todos"]).optional().nullable(),
+  estado: z.enum(["bajo", "sin", "normal", "activo", "inactivo", "PENDIENTE", "LIQUIDADA", "todos"]).optional().nullable(),
 });
 
 export type ReportFilters = z.infer<typeof reportFiltersSchema>;

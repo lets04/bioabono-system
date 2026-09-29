@@ -93,4 +93,11 @@ export const reportsModule = new Elysia({ prefix: "/reports" })
     } catch (error) {
       return handleError(error, set);
     }
+  })
+  .get("/consignations", async ({ query, set }) => {
+    try {
+      return await service.getConsignationsReport(query);
+    } catch (error) {
+      return handleError(error, set);
+    }
   });
