@@ -1,4 +1,4 @@
-export type View = "dashboard" | "products" | "categories" | "suppliers" | "purchases" | "customers" | "sales" | "inventory" | "reports";
+export type View = "dashboard" | "products" | "categories" | "suppliers" | "purchases" | "consignations" | "customers" | "sales" | "inventory" | "reports";
 
 export type Category = {
   id: number;
@@ -150,6 +150,61 @@ export type CustomerFormState = {
   activo: boolean;
 };
 
+export type Consignation = {
+  id: number;
+  numero: string;
+  clienteId: number;
+  clienteNombre: string;
+  fechaEntrega: string;
+  estado: string;
+  observacion: string | null;
+  createdAt: string;
+  lineas: number;
+};
+
+export type ConsignationDetail = {
+  id: number;
+  numero: string;
+  clienteId: number;
+  clienteNombre: string;
+  clienteNitCi: string | null;
+  clienteTelefono: string | null;
+  clienteEmail: string | null;
+  clienteDireccion: string | null;
+  fechaEntrega: string;
+  estado: string;
+  observacion: string | null;
+  createdAt: string;
+  updatedAt: string;
+  usuarioNombre: string;
+  detalles: Array<{
+    id: number;
+    presentacionId: number;
+    cantidadEntregada: number;
+    cantidadVendida: number;
+    cantidadDevuelta: number;
+    precioConsignacion: string;
+    importeVendido: string;
+    codigo: string;
+    cantidadPresentacion: string;
+    unidadMedida: string;
+    productoNombre: string;
+    productoAbreviacion: string;
+  }>;
+  venta: { id: number; numero: string; total: string; fecha: string } | null;
+};
+
+export type ConsignationCreatePayload = {
+  clienteId: number;
+  fechaEntrega?: string;
+  observacion?: string | null;
+  detalles: Array<{ presentacionId: number; cantidadEntregada: number }>;
+};
+
+export type ConsignationLiquidatePayload = {
+  detalles: Array<{ presentacionId: number; cantidadVendida: number; cantidadDevuelta: number }>;
+};
+
 export type Sale = {
   id: number;
   numero: string;
@@ -161,6 +216,8 @@ export type Sale = {
   total: string;
   estado: string;
   observacion: string | null;
+  consignacionId: number | null;
+  consignacionNumero: string | null;
   lineas: number;
 };
 
@@ -179,6 +236,8 @@ export type SaleDetail = {
   total: string;
   estado: string;
   observacion: string | null;
+  consignacionId: number | null;
+  consignacionNumero: string | null;
   detalles: Array<{
     id: number;
     presentacionId: number;
@@ -199,13 +258,13 @@ export type SaleDetail = {
 export type SaleCreatePayload = {
   clienteId: number | null;
   fecha?: string;
-  tipoPrecio: "PVP" | "CONSIGNACION" | "CONTADO" | "MAYORISTA";
+  tipoPrecio: "PVP" | "CONTADO" | "MAYORISTA";
   observacion?: string | null;
   detalles: Array<{
     presentacionId: number;
     cantidad: number;
     descuentoPorcentaje?: string;
-    tipoPrecio?: "PVP" | "CONSIGNACION" | "CONTADO" | "MAYORISTA";
+    tipoPrecio?: "PVP" | "CONTADO" | "MAYORISTA";
   }>;
 };
 
@@ -255,6 +314,8 @@ export type SalesReport = {
     clienteId: number | null;
     clienteNombre: string | null;
     tipoPrecio: string;
+    consignacionId: number | null;
+    consignacionNumero: string | null;
     presentacionId: number;
     codigo: string;
     cantidadPresentacion: string;
@@ -324,5 +385,34 @@ export type ProductsReport = {
     totalPresentaciones: number;
     sinStock: number;
     bajoStock: number;
+  };
+};
+
+export type ConsignationsReport = {
+  rows: Array<{
+    id: number;
+    numero: string;
+    fechaEntrega: string;
+    clienteId: number;
+    clienteNombre: string;
+    estado: string;
+    observacion: string | null;
+    presentacionId: number;
+    codigo: string;
+    cantidadPresentacion: string;
+    unidadMedida: string;
+    productoNombre: string;
+    productoAbreviacion: string;
+    cantidadEntregada: number;
+    cantidadVendida: number;
+    cantidadDevuelta: number;
+    precioConsignacion: string;
+    importeVendido: string;
+  }>;
+  summary: {
+    cantidadConsignaciones: number;
+    pendientes: number;
+    liquidadas: number;
+    totalVendido: string;
   };
 };
