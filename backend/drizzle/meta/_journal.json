@@ -8,6 +8,13 @@
       "when": 1790004450655,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790700453800,
+      "tag": "0001_small_ser_duncan",
+      "breakpoints": true
     }
   ]
 }

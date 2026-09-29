@@ -196,10 +196,12 @@ export const sales = pgTable(
     total: numeric("total", { precision: 12, scale: 2 }).notNull(),
     estado: varchar("estado", { length: 40 }).notNull(),
     observacion: text("observacion"),
+    consignacionId: integer("consignacion_id").references(() => consignations.id, { onDelete: "set null" }),
     ...timestamps,
   },
   (table) => ({
     numeroIdx: uniqueIndex("sales_numero_unique").on(table.numero),
+    consignacionIdx: uniqueIndex("sales_consignacion_id_unique").on(table.consignacionId),
     subtotalNonNegative: check("sales_subtotal_non_negative", sql`${table.subtotal} >= 0`),
     descuentoTotalNonNegative: check(
       "sales_descuento_total_non_negative",
@@ -403,6 +405,7 @@ export const purchaseDetailsRelations = relations(purchaseDetails, ({ one }) => 
 export const salesRelations = relations(sales, ({ one, many }) => ({
   customer: one(customers, { fields: [sales.clienteId], references: [customers.id] }),
   user: one(users, { fields: [sales.usuarioId], references: [users.id] }),
+  consignation: one(consignations, { fields: [sales.consignacionId], references: [consignations.id] }),
   details: many(saleDetails),
 }));
 
@@ -417,6 +420,7 @@ export const saleDetailsRelations = relations(saleDetails, ({ one }) => ({
 export const consignationsRelations = relations(consignations, ({ one, many }) => ({
   customer: one(customers, { fields: [consignations.clienteId], references: [customers.id] }),
   user: one(users, { fields: [consignations.usuarioId], references: [users.id] }),
+  sale: one(sales, { fields: [consignations.id], references: [sales.consignacionId] }),
   details: many(consignmentDetails),
 }));
 
