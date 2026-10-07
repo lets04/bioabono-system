@@ -6,6 +6,7 @@ import { DataState } from "../../components/ui/DataState";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { money } from "../../utils/format";
 import { reportsApi } from "../../api/reports";
+import { ReportPrintPreview } from "../../components/print/ReportPrintPreview";
 
 export function ProductReport() {
   const [categoriaId, setCategoriaId] = useState("");
@@ -16,6 +17,7 @@ export function ProductReport() {
   const reportQuery = useProductsReport(applied);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
 
   const apply = () => setApplied({ categoriaId: categoriaId || undefined, estado: estado || undefined });
   const clear = () => {
@@ -98,7 +100,7 @@ export function ProductReport() {
               <button onClick={handleExport} disabled={exporting} className="inline-flex items-center gap-2 rounded-lg bg-bio-green px-4 py-2 text-sm font-semibold text-white hover:bg-bio-dark disabled:opacity-60">
                 <FileSpreadsheet size={16} /> {exporting ? "Exportando..." : "Exportar a Excel"}
               </button>
-              <button onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-lg border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700">
+              <button type="button" onClick={() => setShowPrintPreview(true)} className="inline-flex items-center gap-2 rounded-lg border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700">
                 <Printer size={16} /> Vista previa
               </button>
             </div>
@@ -159,6 +161,12 @@ export function ProductReport() {
             </div>
             {reportQuery.data.rows.length === 0 && <EmptyState text="No hay productos para el filtro aplicado." />}
           </div>
+          {showPrintPreview ? (
+            <ReportPrintPreview title="REPORTE DE PRODUCTOS" criteria={<><span className="font-semibold text-stone-700">Criterios de consulta:</span> {categoriaId ? `Categoría: ${categoriesQuery.data?.find((category) => String(category.id) === categoriaId)?.nombre ?? ""}` : "Todas las categorías"}{estado ? ` — Estado: ${estado}` : ""}</>} onClose={() => setShowPrintPreview(false)}>
+              <section className="mt-6"><h2 className="border-b border-stone-300 pb-2 text-sm font-bold uppercase tracking-wide text-stone-800">Resumen</h2><table className="mt-3 w-full border-collapse text-sm"><tbody><tr className="border-b border-stone-200"><td className="px-3 py-2">Productos base</td><td className="px-3 py-2 text-right font-semibold">{reportQuery.data.summary.totalProductos}</td></tr><tr className="border-b border-stone-200"><td className="px-3 py-2">Presentaciones</td><td className="px-3 py-2 text-right font-semibold">{reportQuery.data.summary.totalPresentaciones}</td></tr><tr className="border-b border-stone-200"><td className="px-3 py-2">Sin stock</td><td className="px-3 py-2 text-right font-semibold">{reportQuery.data.summary.sinStock}</td></tr><tr><td className="px-3 py-2">Stock bajo</td><td className="px-3 py-2 text-right font-semibold">{reportQuery.data.summary.bajoStock}</td></tr></tbody></table></section>
+              <section className="mt-7"><h2 className="border-b border-stone-300 pb-2 text-sm font-bold uppercase tracking-wide text-stone-800">Detalle de productos</h2><div className="mt-3 overflow-hidden border border-stone-300"><table className="w-full border-collapse text-[10px]"><thead><tr className="border-b-2 border-stone-400 bg-stone-100"><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Código</th><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Producto</th><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Categoría</th><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Presentación</th><th className="px-2 py-2 text-right font-bold uppercase text-stone-700">PVP</th><th className="px-2 py-2 text-right font-bold uppercase text-stone-700">Últ. compra</th><th className="px-2 py-2 text-right font-bold uppercase text-stone-700">Stock</th><th className="px-2 py-2 text-right font-bold uppercase text-stone-700">Mín.</th><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Estado</th></tr></thead><tbody>{reportQuery.data.rows.map((row) => { const rowStatus = !row.activo || !row.productoActivo ? "Inactivo" : row.stockActual === 0 ? "Sin stock" : row.stockActual <= row.stockMinimo ? "Bajo" : "Normal"; return <tr key={row.id} className="border-b border-stone-200"><td className="px-2 py-2 font-mono">{row.codigo}</td><td className="px-2 py-2">{row.productoNombre}<span className="block text-stone-500">{row.productoAbreviacion}</span></td><td className="px-2 py-2">{row.categoriaNombre ?? "—"}</td><td className="px-2 py-2">{row.cantidad} {row.unidadMedida}</td><td className="px-2 py-2 text-right">{money(row.pvp)}</td><td className="px-2 py-2 text-right">{row.ultimoPrecioCompra ? money(row.ultimoPrecioCompra) : "—"}</td><td className="px-2 py-2 text-right font-semibold">{row.stockActual}</td><td className="px-2 py-2 text-right">{row.stockMinimo}</td><td className="px-2 py-2">{rowStatus}</td></tr>; })}</tbody></table></div>{reportQuery.data.rows.length === 0 ? <p className="border border-t-0 border-stone-300 p-8 text-center text-sm text-stone-500">No hay productos para el filtro aplicado.</p> : null}</section>
+            </ReportPrintPreview>
+          ) : null}
         </>
       )}
     </div>
