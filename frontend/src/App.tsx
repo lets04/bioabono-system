@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BarChart3, FolderTree, Handshake, LayoutDashboard, Package, Receipt, ShoppingCart, Truck, Users, Warehouse, UserCog } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AppLayout } from "./layouts/AppLayout";
@@ -27,16 +27,23 @@ import type { View } from "./types";
 const allNavItems = [
   { id: "dashboard", label: "Inicio", icon: LayoutDashboard },
   { id: "sales", label: "Ventas", icon: Receipt },
+  { id: "consignations", label: "Consignaciones", icon: Handshake },
   { id: "purchases", label: "Compras", icon: ShoppingCart },
   { id: "inventory", label: "Inventario", icon: Warehouse },
   { id: "products", label: "Productos", icon: Package },
   { id: "categories", label: "Categorías", icon: FolderTree },
   { id: "customers", label: "Clientes", icon: Users },
   { id: "suppliers", label: "Proveedores", icon: Truck },
-  { id: "consignations", label: "Consignaciones", icon: Handshake },
   { id: "reports", label: "Reportes", icon: BarChart3 },
   { id: "users", label: "Usuarios", icon: UserCog, adminOnly: true },
 ] satisfies Array<{ id: View; label: string; icon: LucideIcon; adminOnly?: boolean }>;
+
+const appViews = new Set<View>(allNavItems.map((item) => item.id));
+
+function viewFromHash(): View {
+  const view = window.location.hash.slice(1) as View;
+  return appViews.has(view) ? view : "dashboard";
+}
 
 function currentAuthPage() {
   const path = window.location.pathname;
@@ -67,7 +74,7 @@ export function App() {
 }
 
 function AuthenticatedApp({ isAdmin }: { isAdmin: boolean }) {
-  const [activeView, setActiveView] = useState<View>("dashboard");
+  const [activeView, setActiveView] = useState<View>(viewFromHash);
   const [productSearch, setProductSearch] = useState("");
   const [supplierSearch, setSupplierSearch] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
@@ -76,6 +83,25 @@ function AuthenticatedApp({ isAdmin }: { isAdmin: boolean }) {
     () => allNavItems.filter((item) => !item.adminOnly || isAdmin).map(({ id, label, icon }) => ({ id, label, icon })),
     [isAdmin],
   );
+
+  useEffect(() => {
+    const syncViewWithUrl = () => setActiveView(viewFromHash());
+    window.addEventListener("hashchange", syncViewWithUrl);
+    return () => window.removeEventListener("hashchange", syncViewWithUrl);
+  }, []);
+
+  useEffect(() => {
+    if (!navItems.some((item) => item.id === activeView)) {
+      setActiveView("dashboard");
+      window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+    }
+  }, [activeView, navItems]);
+
+  const navigate = (view: View) => {
+    const nextHash = view === "dashboard" ? "" : `#${view}`;
+    if (window.location.hash !== nextHash) window.location.hash = nextHash;
+    setActiveView(view);
+  };
 
   const productsQuery = useProducts(productSearch);
   const categoriesQuery = useCategories();
@@ -91,7 +117,7 @@ function AuthenticatedApp({ isAdmin }: { isAdmin: boolean }) {
     <AppLayout
       navItems={navItems}
       activeView={activeView}
-      onNavigate={setActiveView}
+      onNavigate={navigate}
       title={title}
     >
       {activeView === "dashboard" && (
@@ -99,7 +125,7 @@ function AuthenticatedApp({ isAdmin }: { isAdmin: boolean }) {
           products={products}
           activeProducts={activeProducts.length}
           lowStock={lowStockPresentaciones.length}
-          onNavigate={setActiveView}
+          onNavigate={navigate}
         />
       )}
 

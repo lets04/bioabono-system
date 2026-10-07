@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Mail, Plus, Power } from "lucide-react";
+import { Mail, Plus, Power, Trash2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Modal } from "../../components/ui/Modal";
 import { DataState } from "../../components/ui/DataState";
@@ -9,6 +9,7 @@ import { usersApi } from "../../api/users";
 import { useUsers } from "../../hooks/useUsers";
 import { UserForm } from "./UserForm";
 import type { SystemUser, UserInvitePayload, UserStatus } from "../../types";
+import { useAuth } from "../../auth/AuthContext";
 
 function statusClass(estado: UserStatus) {
   if (estado === "ACTIVO") return "bg-emerald-100 text-emerald-800";
@@ -17,6 +18,7 @@ function statusClass(estado: UserStatus) {
 }
 
 export function UsersView() {
+  const { user: currentUser } = useAuth();
   const queryClient = useQueryClient();
   const usersQuery = useUsers();
   const [creating, setCreating] = useState(false);
@@ -46,6 +48,12 @@ export function UsersView() {
     onError: (error) => alert(error instanceof Error ? error.message : "No se pudo cambiar el estado"),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => usersApi.delete(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["users"] }),
+    onError: (error) => alert(error instanceof Error ? error.message : "No se pudo eliminar el usuario"),
+  });
+
   const users = usersQuery.data ?? [];
 
   const confirmStatus = (user: SystemUser) => {
@@ -54,6 +62,15 @@ export function UsersView() {
     const action = next === "INACTIVO" ? "desactivar" : "reactivar";
     if (!confirm(`¿Confirmas ${action} a "${user.nombre}"?`)) return;
     statusMutation.mutate({ id: user.id, estado: next });
+  };
+
+  const confirmDelete = (user: SystemUser) => {
+    if (user.id === currentUser?.id) {
+      alert("No puedes eliminar tu propia cuenta.");
+      return;
+    }
+    if (!confirm(`¿Eliminar definitivamente a "${user.nombre}"? Esta acción no se puede deshacer.`)) return;
+    deleteMutation.mutate(user.id);
   };
 
   return (
@@ -103,6 +120,9 @@ export function UsersView() {
                         ) : (
                           <IconButton label={user.estado === "ACTIVO" ? "Desactivar" : "Reactivar"} onClick={() => confirmStatus(user)} icon={Power} />
                         )}
+                        {user.id !== currentUser?.id ? (
+                          <IconButton label="Eliminar usuario" onClick={() => confirmDelete(user)} icon={Trash2} />
+                        ) : null}
                       </div>
                     </td>
                   </tr>

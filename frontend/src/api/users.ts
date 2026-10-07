@@ -16,4 +16,6 @@ export const usersApi = {
       method: "PATCH",
       body: JSON.stringify({ estado }),
     }),
+  delete: (id: number) =>
+    apiRequest<{ message: string }>(`/users/${id}`, { method: "DELETE" }),
 };

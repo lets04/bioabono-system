@@ -28,6 +28,8 @@ export function handleAuthError(error: unknown, set: { status?: number | string 
     USER_STILL_PENDING: { status: 409, message: "El usuario todavía está pendiente de activación" },
     USER_NOT_ACTIVATED: { status: 409, message: "El usuario todavía no activó su cuenta" },
     CANNOT_CHANGE_OWN_STATUS: { status: 409, message: "No puedes cambiar el estado de tu propia cuenta" },
+    CANNOT_DELETE_OWN_USER: { status: 409, message: "No puedes eliminar tu propia cuenta" },
+    USER_HAS_OPERATIONAL_RECORDS: { status: 409, message: "No se puede eliminar un usuario con operaciones registradas; puedes desactivarlo" },
     INVALID_ACTIVATION_TOKEN: { status: 400, message: "El enlace de activación no es válido" },
     ACTIVATION_TOKEN_USED: { status: 409, message: "El enlace de activación ya fue utilizado" },
     ACTIVATION_TOKEN_EXPIRED: { status: 410, message: "El enlace de activación expiró" },

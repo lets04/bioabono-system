@@ -255,3 +255,25 @@ export async function updateUserStatus(id: number, body: unknown, actor: AuthUse
     createdAt: updated.createdAt,
   };
 }
+
+export async function deleteUser(id: number, actor: AuthUser) {
+  const user = await repository.findUserById(id);
+  if (!user) throw new Error("USER_NOT_FOUND");
+  if (user.id === actor.id) throw new Error("CANNOT_DELETE_OWN_USER");
+  if (await repository.userHasOperationalRecords(id)) {
+    throw new Error("USER_HAS_OPERATIONAL_RECORDS");
+  }
+
+  const deleted = await repository.deleteUser(id);
+  if (!deleted) throw new Error("USER_NOT_FOUND");
+
+  await repository.insertAuditLog({
+    usuarioId: actor.id,
+    accion: "ELIMINAR_USUARIO",
+    entidad: "usuario",
+    entidadId: deleted.id,
+    detalle: { username: deleted.username, nombre: deleted.nombre },
+  });
+
+  return { message: "Usuario eliminado" };
+}

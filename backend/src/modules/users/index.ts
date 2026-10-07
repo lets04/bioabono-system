@@ -48,4 +48,11 @@ export const usersModule = new Elysia({ prefix: "/users" })
     } catch (error) {
       return handleAuthError(error, set);
     }
+  })
+  .delete("/:id", async ({ params, set, authUser }) => {
+    try {
+      return await service.deleteUser(parseId(params.id), authUser as AuthUser);
+    } catch (error) {
+      return handleAuthError(error, set);
+    }
   });
