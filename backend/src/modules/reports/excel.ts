@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const BIO_DARK = "24421F";
 const BIO_GREEN = "4F8A2F";
@@ -12,19 +13,13 @@ const HEADER_FILL = {
 const HEADER_FONT = { color: { argb: "FFFFFFFF" }, bold: true, size: 10 };
 const TITLE_FONT = { color: { argb: BIO_DARK }, bold: true, size: 16 };
 const SUBTITLE_FONT = { color: { argb: "6B7280" }, size: 9 };
-const LOGO_PATH = path.resolve(
-  process.cwd(),
-  "../frontend/dist/assets/logo.png",
-);
+const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
+// Works both with `tsx` (src/) and with the compiled backend (dist/), without
+// relying on the process working directory or Vite's hashed asset names.
+const LOGO_PATH = path.resolve(MODULE_DIR, "../../../assets/bioabonosinFondo.png");
 
 function addBioabonoLogo(wb: ExcelJS.Workbook): number | null {
   try {
-    console.log("=================================");
-    console.log("CWD:", process.cwd());
-    console.log("LOGO_PATH:", LOGO_PATH);
-    console.log("EXISTE:", fs.existsSync(LOGO_PATH));
-    console.log("=================================");
-
     if (!fs.existsSync(LOGO_PATH)) {
       console.warn(`Logo BIOABONO no encontrado en: ${LOGO_PATH}`);
       return null;
@@ -34,8 +29,6 @@ function addBioabonoLogo(wb: ExcelJS.Workbook): number | null {
       filename: LOGO_PATH,
       extension: "png",
     });
-
-    console.log("Logo agregado al workbook. ID:", imageId);
 
     return imageId;
   } catch (error) {

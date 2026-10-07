@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Maximize2, Minimize2, Printer, X } from "lucide-react";
 
 type Props = {
@@ -18,29 +19,69 @@ export function PrintPreview({
 }: Props) {
   const [isPreviewFullscreen, setIsPreviewFullscreen] = useState(false);
 
-  return (
-    <>
+  return createPortal(
+    <div className="print-portal">
       <style>
         {`
           @media print {
-            body * {
-              visibility: hidden !important;
+            html,
+            body {
+              height: auto !important;
+              overflow: visible !important;
+              background: white !important;
             }
-            #${printAreaId},
-            #${printAreaId} * {
-              visibility: visible !important;
+            body > *:not(.print-portal) {
+              display: none !important;
+            }
+            .print-portal {
+              display: block !important;
+              width: 100% !important;
+              height: auto !important;
+              overflow: visible !important;
             }
             #${printAreaId} {
-              position: absolute !important;
-              left: 0 !important;
-              top: 0 !important;
+              position: static !important;
+              display: block !important;
               width: 100% !important;
               max-width: none !important;
-              min-height: auto !important;
+              height: auto !important;
+              min-height: 0 !important;
               margin: 0 !important;
-              padding: 10mm !important;
+              padding: 0 !important;
+              overflow: visible !important;
               background: white !important;
               box-shadow: none !important;
+            }
+            .print-overlay,
+            .print-dialog,
+            .print-scroll-area {
+              position: static !important;
+              display: block !important;
+              width: 100% !important;
+              height: auto !important;
+              min-height: 0 !important;
+              max-height: none !important;
+              overflow: visible !important;
+              background: white !important;
+              box-shadow: none !important;
+            }
+            #${printAreaId} * {
+              overflow: visible !important;
+            }
+            #${printAreaId} table {
+              width: 100% !important;
+              break-inside: auto;
+              page-break-inside: auto;
+            }
+            #${printAreaId} thead {
+              display: table-header-group;
+            }
+            #${printAreaId} tfoot {
+              display: table-footer-group;
+            }
+            #${printAreaId} tr {
+              break-inside: avoid;
+              page-break-inside: avoid;
             }
             @page {
               size: ${pageSize};
@@ -54,18 +95,18 @@ export function PrintPreview({
       </style>
 
       <div
-        className={
+        className={`print-overlay ${
           isPreviewFullscreen
             ? "fixed inset-0 z-[100] bg-stone-200"
             : "fixed inset-0 z-[100] flex items-center justify-center bg-stone-950/70 p-4"
-        }
+        }`}
       >
         <div
-          className={
+          className={`print-dialog ${
             isPreviewFullscreen
               ? "flex h-full w-full flex-col bg-white"
               : "flex h-[92vh] w-full max-w-7xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl"
-          }
+          }`}
         >
           <div className="print-hide flex h-16 shrink-0 items-center justify-between border-b border-stone-200 bg-white px-4 shadow-sm">
             <div className="min-w-0">
@@ -101,13 +142,14 @@ export function PrintPreview({
             </div>
           </div>
 
-          <div className="flex-1 overflow-auto bg-stone-200 p-4 sm:p-8">
+          <div className="print-scroll-area flex-1 overflow-auto bg-stone-200 p-4 sm:p-8">
             <div id={printAreaId} className="mx-auto min-h-[900px] w-full max-w-[1100px] bg-white p-6 shadow-xl sm:p-8">
               {children}
             </div>
           </div>
         </div>
       </div>
-    </>
+    </div>,
+    document.body,
   );
 }
