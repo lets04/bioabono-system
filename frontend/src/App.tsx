@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { BarChart3, FolderTree, Handshake, LayoutDashboard, Package, Receipt, ShoppingCart, Truck, Users } from "lucide-react";
+import { useMemo, useState } from "react";
+import { BarChart3, FolderTree, Handshake, LayoutDashboard, Package, Receipt, ShoppingCart, Truck, Users, Warehouse, UserCog } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AppLayout } from "./layouts/AppLayout";
 import { DashboardView } from "./modules/dashboard/DashboardView";
@@ -12,29 +12,70 @@ import { CustomersView } from "./modules/customers/CustomersView";
 import { SalesView } from "./modules/sales/SalesView";
 import { InventoryView } from "./modules/inventory/InventoryView";
 import { ReportsView } from "./modules/reports/ReportsView";
+import { UsersView } from "./modules/users/UsersView";
+import { LoginView } from "./modules/auth/LoginView";
+import { ActivateAccountView } from "./modules/auth/ActivateAccountView";
+import { ForgotPasswordView } from "./modules/auth/ForgotPasswordView";
+import { ResetPasswordView } from "./modules/auth/ResetPasswordView";
+import { useAuth } from "./auth/AuthContext";
 import { useProducts } from "./hooks/useProducts";
 import { useCategories } from "./hooks/useCategories";
 import { useSuppliers } from "./hooks/useSuppliers";
 import { useCustomers } from "./hooks/useCustomers";
 import type { View } from "./types";
 
-const navItems = [
+const allNavItems = [
   { id: "dashboard", label: "Inicio", icon: LayoutDashboard },
   { id: "sales", label: "Ventas", icon: Receipt },
   { id: "purchases", label: "Compras", icon: ShoppingCart },
-  { id: "consignations", label: "Consignaciones", icon: Handshake },
-  { id: "customers", label: "Clientes", icon: Users },
-  { id: "suppliers", label: "Proveedores", icon: Truck },
+  { id: "inventory", label: "Inventario", icon: Warehouse },
   { id: "products", label: "Productos", icon: Package },
   { id: "categories", label: "Categorías", icon: FolderTree },
+  { id: "customers", label: "Clientes", icon: Users },
+  { id: "suppliers", label: "Proveedores", icon: Truck },
+  { id: "consignations", label: "Consignaciones", icon: Handshake },
   { id: "reports", label: "Reportes", icon: BarChart3 },
-] satisfies Array<{ id: View; label: string; icon: LucideIcon }>;
+  { id: "users", label: "Usuarios", icon: UserCog, adminOnly: true },
+] satisfies Array<{ id: View; label: string; icon: LucideIcon; adminOnly?: boolean }>;
+
+function currentAuthPage() {
+  const path = window.location.pathname;
+  if (path.startsWith("/activar-cuenta")) return "activate";
+  if (path.startsWith("/olvide-contrasena")) return "forgot";
+  if (path.startsWith("/recuperar-contrasena")) return "reset";
+  return "app";
+}
 
 export function App() {
+  const { user, isReady } = useAuth();
+  const page = currentAuthPage();
+
+  if (!isReady) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-bio-cream text-sm text-stone-500">
+        Cargando...
+      </div>
+    );
+  }
+
+  if (page === "activate") return <ActivateAccountView />;
+  if (page === "forgot") return <ForgotPasswordView />;
+  if (page === "reset") return <ResetPasswordView />;
+  if (!user) return <LoginView />;
+
+  return <AuthenticatedApp isAdmin={user.rol === "ADMIN"} />;
+}
+
+function AuthenticatedApp({ isAdmin }: { isAdmin: boolean }) {
   const [activeView, setActiveView] = useState<View>("dashboard");
   const [productSearch, setProductSearch] = useState("");
   const [supplierSearch, setSupplierSearch] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
+
+  const navItems = useMemo(
+    () => allNavItems.filter((item) => !item.adminOnly || isAdmin).map(({ id, label, icon }) => ({ id, label, icon })),
+    [isAdmin],
+  );
 
   const productsQuery = useProducts(productSearch);
   const categoriesQuery = useCategories();
@@ -44,13 +85,14 @@ export function App() {
   const products = productsQuery.data ?? [];
   const activeProducts = products.filter((p) => p.activo);
   const lowStockPresentaciones = products.flatMap((p) => p.presentaciones.filter((pres) => p.activo && pres.activo && pres.stockActual <= pres.stockMinimo));
+  const title = navItems.find((item) => item.id === activeView)?.label ?? "";
 
   return (
     <AppLayout
       navItems={navItems}
       activeView={activeView}
       onNavigate={setActiveView}
-      title={navItems.find((item) => item.id === activeView)?.label ?? ""}
+      title={title}
     >
       {activeView === "dashboard" && (
         <DashboardView
@@ -109,6 +151,8 @@ export function App() {
       {activeView === "sales" && <SalesView />}
 
       {activeView === "reports" && <ReportsView />}
+
+      {activeView === "users" && isAdmin && <UsersView />}
     </AppLayout>
   );
 }
