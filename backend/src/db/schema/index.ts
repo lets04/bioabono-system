@@ -15,6 +15,7 @@ import {
 import { relations, sql } from "drizzle-orm";
 
 export const userRoleEnum = pgEnum("user_role", ["ADMIN", "EMPLEADO"]);
+export const userStatusEnum = pgEnum("user_status", ["PENDIENTE", "ACTIVO", "INACTIVO"]);
 export const priceTypeEnum = pgEnum("price_type", ["PVP", "CONSIGNACION", "CONTADO", "MAYORISTA"]);
 export const consignmentStatusEnum = pgEnum("consignment_status", ["PENDIENTE", "LIQUIDADA"]);
 export const movementTypeEnum = pgEnum("movement_type", [
@@ -35,10 +36,18 @@ export const users = pgTable(
   {
     id: serial("id").primaryKey(),
     nombre: varchar("nombre", { length: 160 }).notNull(),
-    username: varchar("username", { length: 80 }).notNull(),
+    username: varchar("username", { length: 160 }).notNull(),
     passwordHash: text("password_hash").notNull(),
     rol: userRoleEnum("rol").notNull(),
+    estado: userStatusEnum("estado").notNull().default("PENDIENTE"),
     activo: boolean("activo").notNull().default(true),
+    activationTokenHash: text("activation_token_hash"),
+    activationTokenExpiresAt: timestamp("activation_token_expires_at", { withTimezone: true }),
+    activationUsedAt: timestamp("activation_used_at", { withTimezone: true }),
+    activatedAt: timestamp("activated_at", { withTimezone: true }),
+    passwordResetTokenHash: text("password_reset_token_hash"),
+    passwordResetTokenExpiresAt: timestamp("password_reset_token_expires_at", { withTimezone: true }),
+    passwordResetUsedAt: timestamp("password_reset_used_at", { withTimezone: true }),
     ...timestamps,
   },
   (table) => ({

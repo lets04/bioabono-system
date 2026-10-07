@@ -15,6 +15,13 @@
       "when": 1790700453800,
       "tag": "0001_small_ser_duncan",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791300000000,
+      "tag": "0002_users_auth",
+      "breakpoints": true
     }
   ]
 }

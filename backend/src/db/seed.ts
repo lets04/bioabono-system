@@ -6,6 +6,7 @@ import {
   productPresentations,
   products,
 } from "./schema/index.js";
+import { seedAdmin } from "./seedAdmin.js";
 
 const categoryData = [
   "Bioabonos",
@@ -407,6 +408,8 @@ async function getOrCreateProduct(
 }
 
 async function seed() {
+  await seedAdmin();
+
   let categoriesCreated = 0;
   let productsCreated = 0;
   let presentationsCreated = 0;
@@ -501,7 +504,6 @@ async function seed() {
   console.log(`Categorías creadas: ${categoriesCreated}`);
   console.log(`Productos creados: ${productsCreated}`);
   console.log(`Presentaciones creadas: ${presentationsCreated}`);
-  console.log("No se crearon usuarios, clientes, proveedores, compras, ventas, consignaciones ni movimientos.");
 }
 
 try {
