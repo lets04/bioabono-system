@@ -15,8 +15,6 @@ export function PurchasePrint({ purchase, onClose }: { purchase: PurchaseDetail;
             {" — "}
             <span className="font-semibold text-stone-700">Fecha:</span>{" "}
             {new Date(purchase.fecha).toLocaleDateString("es-BO", { dateStyle: "long" })}
-            {" — "}
-            <span className="font-semibold text-stone-700">Estado:</span> {purchase.estado}
           </>
         }
       />
@@ -65,18 +63,6 @@ export function PurchasePrint({ purchase, onClose }: { purchase: PurchaseDetail;
             </tbody>
           </table>
         </div>
-      </div>
-
-      <div className="mt-6">
-        <h2 className="border-b border-stone-300 pb-2 text-sm font-bold uppercase tracking-wide text-stone-800">Resumen</h2>
-        <table className="mt-3 w-full border-collapse text-sm">
-          <tbody>
-            <tr>
-              <td className="px-3 py-2">Total</td>
-              <td className="px-3 py-2 text-right font-semibold">{money(purchase.total)}</td>
-            </tr>
-          </tbody>
-        </table>
       </div>
 
       <PrintFooter left="BIOABONO — Documento generado por el sistema" right="Comprobante de compra" />

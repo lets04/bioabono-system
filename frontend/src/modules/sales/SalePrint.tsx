@@ -81,25 +81,6 @@ export function SalePrint({ sale, onClose }: { sale: SaleDetail; onClose: () => 
         </div>
       </div>
 
-      <div className="mt-6">
-        <h2 className="border-b border-stone-300 pb-2 text-sm font-bold uppercase tracking-wide text-stone-800">Resumen</h2>
-        <table className="mt-3 w-full border-collapse text-sm">
-          <tbody>
-            <tr className="border-b border-stone-200">
-              <td className="px-3 py-2">Subtotal</td>
-              <td className="px-3 py-2 text-right font-semibold">{money(sale.subtotal)}</td>
-            </tr>
-            <tr className="border-b border-stone-200">
-              <td className="px-3 py-2">Descuento</td>
-              <td className="px-3 py-2 text-right font-semibold">{money(sale.descuentoTotal)}</td>
-            </tr>
-            <tr>
-              <td className="px-3 py-2">Total</td>
-              <td className="px-3 py-2 text-right font-semibold">{money(sale.total)}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
 
       <PrintFooter left="BIOABONO — Documento generado por el sistema" right="Comprobante de venta" />
     </PrintPreview>
