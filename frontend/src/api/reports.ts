@@ -1,4 +1,4 @@
-import { apiRequest } from "./client";
+import { apiRequest, authHeaders } from "./client";
 import type { PurchasesReport, SalesReport, InventoryReport, ProductsReport, ConsignationsReport, ReportFilters } from "../types";
 
 function toQuery(filters: ReportFilters): string {
@@ -11,7 +11,7 @@ function toQuery(filters: ReportFilters): string {
 }
 
 async function downloadExport(path: string, fallbackName: string) {
-  const res = await fetch(`/api${path}`, { method: "GET" });
+  const res = await fetch(`/api${path}`, { method: "GET", headers: { ...authHeaders() } });
   if (!res.ok) {
     const data = await res.json().catch(() => null);
     throw new Error(data?.message || "No se pudo generar el archivo Excel");
