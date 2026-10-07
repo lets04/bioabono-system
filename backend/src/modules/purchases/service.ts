@@ -14,15 +14,13 @@ export async function getPurchase(id: number) {
   return purchase;
 }
 
-export async function createPurchase(body: unknown) {
+export async function createPurchase(body: unknown, usuarioId: number) {
   const input = purchaseCreateSchema.parse(body);
 
   // Validar proveedor existe y activo
   const [proveedor] = await db.select().from(suppliers).where(eq(suppliers.id, input.proveedorId)).limit(1);
   if (!proveedor) throw new Error("SUPPLIER_NOT_FOUND");
   if (!proveedor.activo) throw new Error("SUPPLIER_INACTIVE");
-
-  const usuarioId = await repository.getSystemUserId();
 
   const result = await repository.createPurchaseWithTransaction({
     proveedorId: input.proveedorId,

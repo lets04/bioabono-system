@@ -15,22 +15,20 @@ export async function getConsignation(id: number) {
   return consignation;
 }
 
-export async function createConsignation(body: unknown) {
+export async function createConsignation(body: unknown, usuarioId: number) {
   const input = consignationCreateSchema.parse(body);
 
   const [cliente] = await db.select().from(customers).where(eq(customers.id, input.clienteId)).limit(1);
   if (!cliente) throw new Error("CUSTOMER_NOT_FOUND");
   if (!cliente.activo) throw new Error("CUSTOMER_INACTIVE");
 
-  const usuarioId = await repository.getSystemUserId();
   const result = await repository.createConsignationWithTransaction(input, usuarioId);
 
   return getConsignation(result.id);
 }
 
-export async function liquidateConsignation(id: number, body: unknown) {
+export async function liquidateConsignation(id: number, body: unknown, usuarioId: number) {
   const input = consignationLiquidateSchema.parse(body);
-  const usuarioId = await repository.getSystemUserId();
   await repository.liquidateConsignationWithTransaction(id, input, usuarioId);
 
   return getConsignation(id);

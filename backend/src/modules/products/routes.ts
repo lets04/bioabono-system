@@ -1,5 +1,6 @@
 import { Elysia } from "elysia";
 import { ZodError } from "zod";
+import { requireAuth } from "../auth/plugin.js";
 import * as service from "./service.js";
 
 function parseId(value: string) {
@@ -44,6 +45,7 @@ function handleError(error: unknown, set: { status?: number | string }) {
 }
 
 export const productsModule = new Elysia({ prefix: "/products" })
+  .use(requireAuth)
   .get("/", ({ query }) => {
     const includeInactive = query.includeInactive === "false" ? false : true;
     return service.listProducts(query.search as string | undefined, includeInactive);

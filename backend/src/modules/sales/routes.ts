@@ -1,5 +1,6 @@
 import { Elysia } from "elysia";
 import { ZodError } from "zod";
+import { requireAuth } from "../auth/plugin.js";
 import * as service from "./service.js";
 
 function parseId(value: string) {
@@ -43,9 +44,9 @@ function handleError(error: unknown, set: { status?: number | string }) {
       set.status = 400;
       return { error: msg, message: "Datos inválidos" };
     }
-    if (msg === "NO_SYSTEM_USER") {
-      set.status = 500;
-      return { error: msg, message: "No hay usuario del sistema" };
+    if (msg === "UNAUTHORIZED") {
+      set.status = 401;
+      return { error: msg, message: "No autenticado" };
     }
   }
   set.status = 500;
@@ -53,6 +54,7 @@ function handleError(error: unknown, set: { status?: number | string }) {
 }
 
 export const salesModule = new Elysia({ prefix: "/sales" })
+  .use(requireAuth)
   .get("/", ({ query }) => service.listSales(query.search as string | undefined))
   .get("/:id", async ({ params, set }) => {
     try {
@@ -61,10 +63,10 @@ export const salesModule = new Elysia({ prefix: "/sales" })
       return handleError(error, set);
     }
   })
-  .post("/", async ({ body, set }) => {
+  .post("/", async ({ body, set, authUser }) => {
     try {
       set.status = 201;
-      return await service.createSale(body);
+      return await service.createSale(body, authUser.id);
     } catch (error) {
       return handleError(error, set);
     }

@@ -1,5 +1,6 @@
 import { Elysia } from "elysia";
 import { ZodError } from "zod";
+import { requireAuth } from "../auth/plugin.js";
 import * as service from "./service.js";
 
 function handleError(error: unknown, set: { status?: number | string }) {
@@ -12,6 +13,7 @@ function handleError(error: unknown, set: { status?: number | string }) {
 }
 
 export const reportsModule = new Elysia({ prefix: "/reports" })
+  .use(requireAuth)
   .get("/purchases", async ({ query, set }) => {
     try {
       return await service.getPurchasesReport(query);

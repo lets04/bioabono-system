@@ -1,5 +1,6 @@
 import { Elysia } from "elysia";
 import { ZodError } from "zod";
+import { requireAuth } from "../auth/plugin.js";
 import * as service from "./service.js";
 
 function parseId(value: string) {
@@ -26,6 +27,7 @@ function handleError(error: unknown, set: { status?: number | string }) {
 }
 
 export const customersModule = new Elysia({ prefix: "/customers" })
+  .use(requireAuth)
   .get("/", ({ query }) => service.listCustomers(query.search as string | undefined))
   .get("/:id", async ({ params, set }) => {
     try {

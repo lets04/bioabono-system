@@ -358,10 +358,3 @@ export async function liquidateConsignationWithTransaction(
     return consignation;
   });
 }
-
-export async function getSystemUserId(): Promise<number> {
-  const result = await db.execute(sql`SELECT id FROM users ORDER BY id ASC LIMIT 1`);
-  const row = (result.rows as any[])[0];
-  if (!row) throw new Error("NO_SYSTEM_USER");
-  return Number(row.id);
-}

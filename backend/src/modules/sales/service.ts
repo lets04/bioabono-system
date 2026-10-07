@@ -14,7 +14,7 @@ export async function getSale(id: number) {
   return sale;
 }
 
-export async function createSale(body: unknown) {
+export async function createSale(body: unknown, usuarioId: number) {
   const input = saleCreateSchema.parse(body);
 
   if (input.clienteId !== null && input.clienteId !== undefined) {
@@ -22,8 +22,6 @@ export async function createSale(body: unknown) {
     if (!cliente) throw new Error("CUSTOMER_NOT_FOUND");
     if (!cliente.activo) throw new Error("CUSTOMER_INACTIVE");
   }
-
-  const usuarioId = await repository.getSystemUserId();
 
   const result = await repository.createSaleWithTransaction({
     clienteId: input.clienteId ?? null,

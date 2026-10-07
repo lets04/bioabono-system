@@ -7,6 +7,7 @@ import {
   purchaseDetails,
   purchases,
   suppliers,
+  auditLogs,
 } from "../../db/schema/index.js";
 
 export async function listPurchases(search?: string) {
@@ -181,13 +182,14 @@ export async function createPurchaseWithTransaction(input: {
       });
     }
 
+    await tx.insert(auditLogs).values({
+      usuarioId: input.usuarioId,
+      accion: "CREAR_COMPRA",
+      entidad: "compra",
+      entidadId: purchase.id,
+      detalle: { numero: purchase.numero },
+    });
+
     return purchase;
   });
-}
-
-export async function getSystemUserId(): Promise<number> {
-  const result = await db.execute(sql`SELECT id FROM users ORDER BY id ASC LIMIT 1`);
-  const row = (result.rows as any[])[0];
-  if (!row) throw new Error("NO_SYSTEM_USER");
-  return Number(row.id);
 }
