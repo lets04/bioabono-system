@@ -14,7 +14,7 @@ const TITLE_FONT = { color: { argb: BIO_DARK }, bold: true, size: 16 };
 const SUBTITLE_FONT = { color: { argb: "6B7280" }, size: 9 };
 const LOGO_PATH = path.resolve(
   process.cwd(),
-  "/frontend/dist/assets/bioabonosinFondo.png",
+  "../frontend/dist/assets/logo.png",
 );
 
 function addBioabonoLogo(wb: ExcelJS.Workbook): number | null {
@@ -83,40 +83,74 @@ function addReportHeader(
 ) {
   const logoId = addBioabonoLogo(wb);
 
+  // Alturas del encabezado
+  ws.getRow(1).height = 58;
+  ws.getRow(2).height = 20;
+  ws.getRow(3).height = 18;
+  ws.getRow(4).height = 18;
+  ws.getRow(5).height = 18;
+  ws.getRow(6).height = 8;
+
+  // =========================
+  // LOGO
+  // =========================
   if (logoId !== null) {
     ws.addImage(logoId, {
-      tl: { col: 0.2, row: 0.15 },
-      ext: { width: 150, height: 65 },
+      tl: { col: 0.10, row: 0.05 },
+      ext: {
+        width: 180,
+        height: 75,
+      },
     });
   }
 
-  ws.mergeCells(1, 2, 1, colCount);
+  // =========================
+  // TÍTULO
+  // =========================
+  // Empieza en columna C para dejar espacio al logo
+  ws.mergeCells(1, 3, 1, colCount);
 
-  const titleCell = ws.getCell(1, 2);
+  const titleCell = ws.getCell(1, 3);
+
   titleCell.value = `BIOABONO — ${title}`;
-  titleCell.font = TITLE_FONT;
+
+  titleCell.font = {
+    color: { argb: BIO_DARK },
+    bold: true,
+    size: 16,
+  };
+
   titleCell.alignment = {
     vertical: "middle",
     horizontal: "left",
   };
 
-  ws.getRow(1).height = 28;
+  // =========================
+  // SUBTÍTULO
+  // =========================
+  ws.mergeCells(2, 3, 2, colCount);
 
-  ws.mergeCells(2, 2, 2, colCount);
+  const subCell = ws.getCell(2, 3);
 
-  const subCell = ws.getCell(2, 2);
   subCell.value = "Gestión comercial — 100% Orgánico y Ecológico";
+
   subCell.font = {
     color: { argb: BIO_GREEN },
     size: 9,
     italic: true,
   };
 
-  ws.getRow(2).height = 18;
+  subCell.alignment = {
+    vertical: "middle",
+    horizontal: "left",
+  };
 
-  ws.mergeCells(3, 2, 3, colCount);
+  // =========================
+  // FECHA
+  // =========================
+  ws.mergeCells(3, 3, 3, colCount);
 
-  const genCell = ws.getCell(3, 2);
+  const genCell = ws.getCell(3, 3);
 
   genCell.value = `Fecha de generación: ${new Date().toLocaleString("es-BO", {
     dateStyle: "long",
@@ -125,24 +159,42 @@ function addReportHeader(
 
   genCell.font = SUBTITLE_FONT;
 
-  ws.getRow(3).height = 16;
+  genCell.alignment = {
+    vertical: "middle",
+    horizontal: "left",
+  };
 
+  // =========================
+  // PERÍODO
+  // =========================
   ws.mergeCells(4, 1, 4, colCount);
 
   const periodCell = ws.getCell(4, 1);
+
   periodCell.value = periodDesc;
+
   periodCell.font = SUBTITLE_FONT;
 
-  ws.getRow(4).height = 16;
+  periodCell.alignment = {
+    vertical: "middle",
+    horizontal: "left",
+  };
 
+  // =========================
+  // FILTROS
+  // =========================
   ws.mergeCells(5, 1, 5, colCount);
 
   const filterCell = ws.getCell(5, 1);
+
   filterCell.value = filtersDesc;
+
   filterCell.font = SUBTITLE_FONT;
 
-  ws.getRow(5).height = 16;
-  ws.getRow(6).height = 8;
+  filterCell.alignment = {
+    vertical: "middle",
+    horizontal: "left",
+  };
 }
 
 export async function buildPurchasesWorkbook(
@@ -280,7 +332,7 @@ export async function buildPurchasesWorkbook(
 
   // Column widths
   ws.columns = [
-    { width: 12 },
+    { width: 18 },
     { width: 18 },
     { width: 22 },
     { width: 12 },

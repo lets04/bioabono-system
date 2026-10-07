@@ -1,6 +1,6 @@
 import { money } from "../../utils/format";
 import type { PurchaseDetail } from "../../types";
-import logoBioabono from "../../../dist/assets/bioabonosinFondo.png";
+import logoBioabono from "../../../dist/assets/logo.png";
 
 export function PurchasePrint({
   purchase,

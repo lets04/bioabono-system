@@ -80,7 +80,7 @@ export function ConsignationsReport() {
 
           <div className="flex justify-end print:hidden">
             <button onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-lg border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700">
-              <Printer size={16} /> Imprimir reporte
+              <Printer size={16} /> Vista previa
             </button>
           </div>
 

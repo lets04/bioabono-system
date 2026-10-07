@@ -1,5 +1,5 @@
 import type { FormEvent, ReactNode } from "react";
-import logoBioabono from "../../../dist/assets/bioabonosinFondo.png";
+import logoBioabono from "../../../dist/assets/logo.png";
 
 type Props = {
   title: string;
