@@ -1,4 +1,24 @@
-export type View = "dashboard" | "products" | "categories" | "suppliers" | "purchases" | "consignations" | "customers" | "sales" | "inventory" | "reports";
+export type View = "dashboard" | "products" | "categories" | "suppliers" | "purchases" | "consignations" | "customers" | "sales" | "inventory" | "reports" | "users";
+
+export type UserRole = "ADMIN" | "EMPLEADO";
+export type UserStatus = "PENDIENTE" | "ACTIVO" | "INACTIVO";
+
+export type SystemUser = {
+  id: number;
+  nombre: string;
+  username: string;
+  rol: UserRole;
+  estado: UserStatus;
+  activo: boolean;
+  activatedAt: string | null;
+  createdAt: string;
+};
+
+export type UserInvitePayload = {
+  nombre: string;
+  username: string;
+  rol: UserRole;
+};
 
 export type Category = {
   id: number;
