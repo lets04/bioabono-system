@@ -14,10 +14,14 @@ import {
   suppliers,
 } from "../../db/schema/index.js";
 import type { ReportFilters } from "./schema.js";
+import { env } from "../../config/env.js";
 
+// Un filtro "YYYY-MM-DD" se interpreta como inicio del día en la zona del negocio, no en UTC.
 function parseDate(value?: string | null): Date | undefined {
   if (!value) return undefined;
-  const d = new Date(value);
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(value)
+    ? new Date(`${value}T00:00:00${env.businessUtcOffset}`)
+    : new Date(value);
   return isNaN(d.getTime()) ? undefined : d;
 }
 

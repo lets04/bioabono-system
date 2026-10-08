@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Field } from "../../components/ui/Field";
-import { money } from "../../utils/format";
+import { dateInputToISO, hasDuplicates, money, todayLocal } from "../../utils/format";
 import type { Customer, Product } from "../../types";
 
 type Line = {
@@ -38,9 +38,10 @@ function precioConTipo(pvp: number, tipo: string): number {
 
 export function SaleForm({ customers, products, isSaving, error, onSubmit, onCancel }: Props) {
   const [clienteId, setClienteId] = useState<string>("");
-  const [fecha, setFecha] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [fecha, setFecha] = useState<string>(todayLocal);
   const [tipoPrecio, setTipoPrecio] = useState<"PVP" | "CONTADO" | "MAYORISTA">("PVP");
   const [observacion, setObservacion] = useState<string>("");
+  const [localError, setLocalError] = useState<string | null>(null);
   const [lines, setLines] = useState<Line[]>([{ presentacionId: "", cantidad: "1", descuentoPorcentaje: "0" }]);
 
   const presentaciones = useMemo(() => {
@@ -91,6 +92,7 @@ export function SaleForm({ customers, products, isSaving, error, onSubmit, onCan
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
     const detalles = lines
       .filter((l) => l.presentacionId && Number(l.cantidad) > 0)
       .map((l) => ({
@@ -100,9 +102,14 @@ export function SaleForm({ customers, products, isSaving, error, onSubmit, onCan
         tipoPrecio,
       }));
     if (detalles.length === 0) return;
+    if (hasDuplicates(detalles.map((d) => d.presentacionId))) {
+      setLocalError("No se puede repetir la misma presentación en varias líneas.");
+      return;
+    }
+    setLocalError(null);
     onSubmit({
       clienteId: clienteId ? Number(clienteId) : null,
-      fecha: fecha ? new Date(fecha).toISOString() : undefined,
+      fecha: fecha ? dateInputToISO(fecha) : undefined,
       tipoPrecio,
       observacion: observacion.trim() || null,
       detalles,
@@ -217,7 +224,9 @@ export function SaleForm({ customers, products, isSaving, error, onSubmit, onCan
         </div>
       </div>
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {(localError ?? error) && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{localError ?? error}</div>
+      )}
 
       <div className="flex justify-end gap-3">
         <button type="button" onClick={onCancel} className="h-11 rounded-lg border border-stone-300 px-5 text-sm font-semibold text-stone-700 hover:bg-stone-50">

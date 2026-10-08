@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Field } from "../../components/ui/Field";
-import { money } from "../../utils/format";
+import { dateInputToISO, money, todayLocal } from "../../utils/format";
 import type { Product, Supplier } from "../../types";
 
 type Line = {
@@ -21,7 +21,7 @@ type Props = {
 
 export function PurchaseForm({ suppliers, products, isSaving, error, onSubmit, onCancel }: Props) {
   const [proveedorId, setProveedorId] = useState<string>("");
-  const [fecha, setFecha] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [fecha, setFecha] = useState<string>(todayLocal);
   const [observacion, setObservacion] = useState<string>("");
   const [lines, setLines] = useState<Line[]>([{ presentacionId: "", cantidad: "1", precioUnitario: "0" }]);
 
@@ -59,6 +59,7 @@ export function PurchaseForm({ suppliers, products, isSaving, error, onSubmit, o
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
     if (!proveedorId) return;
     const detalles = lines
       .filter((l) => l.presentacionId && Number(l.cantidad) > 0)
@@ -70,7 +71,7 @@ export function PurchaseForm({ suppliers, products, isSaving, error, onSubmit, o
     if (detalles.length === 0) return;
     onSubmit({
       proveedorId: Number(proveedorId),
-      fecha: fecha ? new Date(fecha).toISOString() : undefined,
+      fecha: fecha ? dateInputToISO(fecha) : undefined,
       observacion: observacion.trim() || null,
       detalles,
     });

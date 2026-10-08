@@ -10,6 +10,7 @@ import {
   sales,
   auditLogs,
 } from "../../db/schema/index.js";
+import { adjustStock } from "../../lib/stock.js";
 
 function derivedPrice(pvp: number, tipoPrecio: string): number {
   switch (tipoPrecio) {
@@ -210,18 +211,7 @@ export async function createSaleWithTransaction(input: {
         subtotal: det.subtotal,
       });
 
-      const [pres] = await tx
-        .select({ stockActual: productPresentations.stockActual })
-        .from(productPresentations)
-        .where(eq(productPresentations.id, det.presentacionId))
-        .limit(1);
-      const stockAnterior = pres.stockActual;
-      const stockPosterior = stockAnterior - det.cantidad;
-
-      await tx
-        .update(productPresentations)
-        .set({ stockActual: stockPosterior, updatedAt: new Date() })
-        .where(eq(productPresentations.id, det.presentacionId));
+      const { stockAnterior, stockPosterior } = await adjustStock(tx, det.presentacionId, -det.cantidad);
 
       await tx.insert(inventoryMovements).values({
         presentacionId: det.presentacionId,

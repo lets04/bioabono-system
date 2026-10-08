@@ -5,6 +5,10 @@ const numericString = z
   .transform((v) => String(v).trim())
   .refine((v) => v !== "" && Number.isFinite(Number(v)), "Debe ser un número válido");
 
+const uniquePresentations = <T extends { presentacionId: number }>(items: T[]) =>
+  new Set(items.map((d) => d.presentacionId)).size === items.length;
+const DUPLICATE_MSG = "No se puede repetir la misma presentación en varias líneas";
+
 export const saleCreateSchema = z.object({
   clienteId: z.number().int().positive().optional().nullable(),
   fecha: z.string().trim().optional().nullable(),
@@ -22,7 +26,8 @@ export const saleCreateSchema = z.object({
         tipoPrecio: z.enum(["PVP", "CONTADO", "MAYORISTA"]).optional(),
       }),
     )
-    .min(1, "Debe incluir al menos un producto"),
+    .min(1, "Debe incluir al menos un producto")
+    .refine(uniquePresentations, DUPLICATE_MSG),
 });
 
 export type SaleCreateInput = z.infer<typeof saleCreateSchema>;

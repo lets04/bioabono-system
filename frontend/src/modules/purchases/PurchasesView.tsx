@@ -39,8 +39,6 @@ export function PurchasesView() {
     },
   });
 
-  const detailQuery = selectedId ? purchasesApi.get(selectedId) : null;
-
   const handleSelect = async (id: number) => {
     try {
       const purchase = await purchasesApi.get(id);

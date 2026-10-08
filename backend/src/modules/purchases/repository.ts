@@ -9,6 +9,7 @@ import {
   suppliers,
   auditLogs,
 } from "../../db/schema/index.js";
+import { adjustStock } from "../../lib/stock.js";
 
 export async function listPurchases(search?: string) {
   const term = search?.trim();
@@ -141,7 +142,6 @@ export async function createPurchaseWithTransaction(input: {
       const [presentacion] = await tx
         .select({
           id: productPresentations.id,
-          stockActual: productPresentations.stockActual,
           activo: productPresentations.activo,
         })
         .from(productPresentations)
@@ -153,8 +153,6 @@ export async function createPurchaseWithTransaction(input: {
 
       const precio = Number(det.precioUnitario);
       const detSubtotal = det.cantidad * precio;
-      const stockAnterior = presentacion.stockActual;
-      const stockPosterior = stockAnterior + det.cantidad;
 
       await tx.insert(purchaseDetails).values({
         compraId: purchase.id,
@@ -164,10 +162,7 @@ export async function createPurchaseWithTransaction(input: {
         subtotal: String(detSubtotal.toFixed(2)),
       });
 
-      await tx
-        .update(productPresentations)
-        .set({ stockActual: stockPosterior, updatedAt: new Date() })
-        .where(eq(productPresentations.id, det.presentacionId));
+      const { stockAnterior, stockPosterior } = await adjustStock(tx, det.presentacionId, det.cantidad);
 
       await tx.insert(inventoryMovements).values({
         presentacionId: det.presentacionId,

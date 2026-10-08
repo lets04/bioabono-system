@@ -12,6 +12,7 @@ import {
   sales,
   users,
 } from "../../db/schema/index.js";
+import { adjustStock } from "../../lib/stock.js";
 import type { ConsignationCreateInput, ConsignationLiquidateInput, ConsignationListFilters } from "./schema.js";
 
 export const CONSIGNATION_PRICE_FACTOR = 0.8;
@@ -158,8 +159,6 @@ export async function createConsignationWithTransaction(input: ConsignationCreat
         throw new Error(`STOCK_INSUFFICIENT:${det.presentacionId}`);
 
       const precioConsignacion = Number(pres.pvp) * CONSIGNATION_PRICE_FACTOR;
-      const stockAnterior = pres.stockActual;
-      const stockPosterior = stockAnterior - det.cantidadEntregada;
 
       await tx.insert(consignmentDetails).values({
         consignacionId: consignation.id,
@@ -171,10 +170,12 @@ export async function createConsignationWithTransaction(input: ConsignationCreat
         importeVendido: "0",
       });
 
-      await tx
-        .update(productPresentations)
-        .set({ stockActual: stockPosterior, updatedAt: now })
-        .where(eq(productPresentations.id, det.presentacionId));
+      const { stockAnterior, stockPosterior } = await adjustStock(
+        tx,
+        det.presentacionId,
+        -det.cantidadEntregada,
+        now,
+      );
 
       await tx.insert(inventoryMovements).values({
         presentacionId: det.presentacionId,
@@ -218,7 +219,8 @@ export async function liquidateConsignationWithTransaction(
       })
       .from(consignations)
       .where(eq(consignations.id, id))
-      .limit(1);
+      .limit(1)
+      .for("update");
     if (!consignation) throw new Error("CONSIGNATION_NOT_FOUND");
     if (consignation.estado !== "PENDIENTE") throw new Error("ALREADY_LIQUIDATED");
 
@@ -267,18 +269,12 @@ export async function liquidateConsignationWithTransaction(
         .where(eq(consignmentDetails.id, det.id));
 
       if (entrada.cantidadDevuelta > 0) {
-        const [pres] = await tx
-          .select({ stockActual: productPresentations.stockActual })
-          .from(productPresentations)
-          .where(eq(productPresentations.id, det.presentacionId))
-          .limit(1);
-        const stockAnterior = pres.stockActual;
-        const stockPosterior = stockAnterior + entrada.cantidadDevuelta;
-
-        await tx
-          .update(productPresentations)
-          .set({ stockActual: stockPosterior, updatedAt: now })
-          .where(eq(productPresentations.id, det.presentacionId));
+        const { stockAnterior, stockPosterior } = await adjustStock(
+          tx,
+          det.presentacionId,
+          entrada.cantidadDevuelta,
+          now,
+        );
 
         await tx.insert(inventoryMovements).values({
           presentacionId: det.presentacionId,

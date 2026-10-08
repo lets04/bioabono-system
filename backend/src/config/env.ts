@@ -19,6 +19,8 @@ export const env = {
   smtpSecure: process.env.SMTP_SECURE === "true" || process.env.SMTP_PORT === "465",
   activationTokenTtlHours: Number(process.env.ACTIVATION_TOKEN_TTL_HOURS ?? 72),
   passwordResetTokenTtlHours: Number(process.env.PASSWORD_RESET_TOKEN_TTL_HOURS ?? 1),
+  // Desfase horario del negocio para interpretar filtros de fecha (Bolivia = UTC-4)
+  businessUtcOffset: process.env.BUSINESS_UTC_OFFSET ?? "-04:00",
 };
 
 function required(name: string) {

@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
 import fs from "node:fs";
-import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const BIO_DARK = "24421F";
 const BIO_GREEN = "4F8A2F";
@@ -12,19 +12,13 @@ const HEADER_FILL = {
 const HEADER_FONT = { color: { argb: "FFFFFFFF" }, bold: true, size: 10 };
 const TITLE_FONT = { color: { argb: BIO_DARK }, bold: true, size: 16 };
 const SUBTITLE_FONT = { color: { argb: "6B7280" }, size: 9 };
-const LOGO_PATH = path.resolve(
-  process.cwd(),
-  "/frontend/dist/assets/bioabonosinFondo.png",
+// Mismo nivel relativo desde src/ (tsx) y dist/ (build): backend/assets
+const LOGO_PATH = fileURLToPath(
+  new URL("../../../assets/bioabonosinFondo.png", import.meta.url),
 );
 
 function addBioabonoLogo(wb: ExcelJS.Workbook): number | null {
   try {
-    console.log("=================================");
-    console.log("CWD:", process.cwd());
-    console.log("LOGO_PATH:", LOGO_PATH);
-    console.log("EXISTE:", fs.existsSync(LOGO_PATH));
-    console.log("=================================");
-
     if (!fs.existsSync(LOGO_PATH)) {
       console.warn(`Logo BIOABONO no encontrado en: ${LOGO_PATH}`);
       return null;
@@ -34,8 +28,6 @@ function addBioabonoLogo(wb: ExcelJS.Workbook): number | null {
       filename: LOGO_PATH,
       extension: "png",
     });
-
-    console.log("Logo agregado al workbook. ID:", imageId);
 
     return imageId;
   } catch (error) {

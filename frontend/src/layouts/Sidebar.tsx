@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import type { View } from "../types";
-import logoBioabono from "../../dist/assets/bioabono.png";
+import logoBioabono from "../assets/bioabonosinFondo.png";
 
 type NavItem = {
   id: View;
