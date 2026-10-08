@@ -1,15 +1,12 @@
 import { Elysia } from "elysia";
 import { ZodError } from "zod";
+import { fallbackError, validationError } from "../../lib/http.js";
 import { requireAdmin } from "../auth/plugin.js";
 import * as service from "./service.js";
 
 function handleError(error: unknown, set: { status?: number | string }) {
-  if (error instanceof ZodError) {
-    set.status = 400;
-    return { error: "VALIDATION_ERROR", details: error.flatten() };
-  }
-  set.status = 500;
-  return { error: "INTERNAL_ERROR", message: "No se pudo generar el reporte" };
+  if (error instanceof ZodError) return validationError(error, set);
+  return fallbackError(error, set, "No se pudo generar el reporte");
 }
 
 export const reportsModule = new Elysia({ prefix: "/reports" })

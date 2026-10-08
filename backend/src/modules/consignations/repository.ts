@@ -13,9 +13,8 @@ import {
   users,
 } from "../../db/schema/index.js";
 import { adjustStock } from "../../lib/stock.js";
+import { derivedPriceCents, fromCents, toCents } from "../../lib/pricing.js";
 import type { ConsignationCreateInput, ConsignationLiquidateInput, ConsignationListFilters } from "./schema.js";
-
-export const CONSIGNATION_PRICE_FACTOR = 0.8;
 
 export async function listConsignations(filters: ConsignationListFilters) {
   const term = filters.search?.trim();
@@ -149,16 +148,18 @@ export async function createConsignationWithTransaction(input: ConsignationCreat
           pvp: productPresentations.pvp,
           stockActual: productPresentations.stockActual,
           activo: productPresentations.activo,
+          productoActivo: products.activo,
         })
         .from(productPresentations)
+        .innerJoin(products, eq(productPresentations.productoId, products.id))
         .where(eq(productPresentations.id, det.presentacionId))
         .limit(1);
       if (!pres) throw new Error(`PRESENTATION_NOT_FOUND:${det.presentacionId}`);
-      if (!pres.activo) throw new Error(`PRESENTATION_INACTIVE:${det.presentacionId}`);
+      if (!pres.activo || !pres.productoActivo) throw new Error(`PRESENTATION_INACTIVE:${det.presentacionId}`);
       if (pres.stockActual < det.cantidadEntregada)
         throw new Error(`STOCK_INSUFFICIENT:${det.presentacionId}`);
 
-      const precioConsignacion = Number(pres.pvp) * CONSIGNATION_PRICE_FACTOR;
+      const precioConsignacion = fromCents(derivedPriceCents(pres.pvp, "CONSIGNACION"));
 
       await tx.insert(consignmentDetails).values({
         consignacionId: consignation.id,
@@ -166,7 +167,7 @@ export async function createConsignationWithTransaction(input: ConsignationCreat
         cantidadEntregada: det.cantidadEntregada,
         cantidadVendida: 0,
         cantidadDevuelta: 0,
-        precioConsignacion: precioConsignacion.toFixed(2),
+        precioConsignacion,
         importeVendido: "0",
       });
 
@@ -238,7 +239,7 @@ export async function liquidateConsignationWithTransaction(
     if (byPresentation.size !== detalles.length) throw new Error("INVALID_LIQUIDATION");
 
     const now = new Date();
-    let subtotalVenta = 0;
+    let subtotalVentaCents = 0;
     const saleDetalles: Array<{
       presentacionId: number;
       cantidadVendida: number;
@@ -257,14 +258,14 @@ export async function liquidateConsignationWithTransaction(
         throw new Error("INVALID_LIQUIDATION");
       }
 
-      const importeVendido = entrada.cantidadVendida * Number(det.precioConsignacion);
+      const importeVendido = fromCents(entrada.cantidadVendida * toCents(det.precioConsignacion));
 
       await tx
         .update(consignmentDetails)
         .set({
           cantidadVendida: entrada.cantidadVendida,
           cantidadDevuelta: entrada.cantidadDevuelta,
-          importeVendido: importeVendido.toFixed(2),
+          importeVendido,
         })
         .where(eq(consignmentDetails.id, det.id));
 
@@ -291,12 +292,12 @@ export async function liquidateConsignationWithTransaction(
       }
 
       if (entrada.cantidadVendida > 0) {
-        subtotalVenta += importeVendido;
+        subtotalVentaCents += toCents(importeVendido);
         saleDetalles.push({
           presentacionId: det.presentacionId,
           cantidadVendida: entrada.cantidadVendida,
           precioConsignacion: det.precioConsignacion,
-          importeVendido: importeVendido.toFixed(2),
+          importeVendido,
         });
       }
     }
@@ -304,7 +305,7 @@ export async function liquidateConsignationWithTransaction(
     const ventaNumero = `VTA-${Date.now()}-${Math.floor(Math.random() * 1000)
       .toString()
       .padStart(3, "0")}`;
-    const totalVenta = subtotalVenta.toFixed(2);
+    const totalVenta = fromCents(subtotalVentaCents);
 
     const [sale] = await tx
       .insert(sales)

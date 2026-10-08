@@ -1,5 +1,6 @@
 import { Elysia } from "elysia";
 import { ZodError } from "zod";
+import { fallbackError } from "../../lib/http.js";
 import * as service from "./service.js";
 import { publicUser } from "./types.js";
 import { requireAuth } from "./plugin.js";
@@ -19,10 +20,7 @@ export function handleAuthError(error: unknown, set: { status?: number | string 
     return { error: "VALIDATION_ERROR", message: first, details: error.flatten() };
   }
 
-  if (!(error instanceof Error)) {
-    set.status = 500;
-    return { error: "INTERNAL_ERROR", message: "No se pudo procesar la solicitud" };
-  }
+  if (!(error instanceof Error)) return fallbackError(error, set);
 
   const messages: Record<string, { status: number; message: string }> = {
     INVALID_CREDENTIALS: { status: 401, message: "Usuario o contraseña incorrectos" },
@@ -52,8 +50,7 @@ export function handleAuthError(error: unknown, set: { status?: number | string 
     return { error: error.message, message: mapped.message };
   }
 
-  set.status = 500;
-  return { error: "INTERNAL_ERROR", message: "No se pudo procesar la solicitud" };
+  return fallbackError(error, set);
 }
 
 const publicAuth = new Elysia({ prefix: "/auth" })

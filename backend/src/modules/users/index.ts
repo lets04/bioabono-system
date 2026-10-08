@@ -1,14 +1,9 @@
 import { Elysia } from "elysia";
+import { parseId } from "../../lib/http.js";
 import { handleAuthError } from "../auth/index.js";
 import { requireAdmin, requireAuth } from "../auth/plugin.js";
 import * as service from "../auth/service.js";
 import type { AuthUser } from "../auth/types.js";
-
-function parseId(value: string) {
-  const id = Number(value);
-  if (!Number.isInteger(id) || id <= 0) throw new Error("INVALID_ID");
-  return id;
-}
 
 export const usersModule = new Elysia({ prefix: "/users" })
   .use(requireAuth)

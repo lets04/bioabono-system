@@ -1,17 +1,10 @@
 import * as repository from "./repository.js";
 import { generateCodigo } from "./repository.js";
 import { productCreateSchema, productUpdateSchema } from "./schema.js";
+import { derivedPrices } from "../../lib/pricing.js";
 
 function withDerivedPrices<T extends { pvp: string | number }>(pres: T) {
-  const pvp = Number(pres.pvp);
-  return {
-    ...pres,
-    preciosDerivados: {
-      consignacion: (pvp * 0.8).toFixed(2),
-      contado: (pvp * 0.75).toFixed(2),
-      mayorista: (pvp * 0.7).toFixed(2),
-    },
-  };
+  return { ...pres, preciosDerivados: derivedPrices(pres.pvp) };
 }
 
 function enrichProduct(product: any) {

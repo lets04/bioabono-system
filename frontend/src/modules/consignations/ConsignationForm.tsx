@@ -37,7 +37,7 @@ export function ConsignationForm({ customers, products, isSaving, error, onSubmi
         .map((pres) => ({
           id: pres.id,
           codigo: pres.codigo,
-          pvp: Number(pres.pvp),
+          precioConsignacion: Number(pres.preciosDerivados.consignacion),
           stock: pres.stockActual,
           label: `${prod.nombre} — ${pres.cantidad} ${pres.unidadMedida} (${pres.codigo})`,
         })),
@@ -59,7 +59,7 @@ export function ConsignationForm({ customers, products, isSaving, error, onSubmi
     return lines.reduce((sum, l) => {
       const pres = presentaciones.find((p) => String(p.id) === l.presentacionId);
       const qty = Number(l.cantidadEntregada) || 0;
-      return sum + (pres?.pvp ?? 0) * 0.8 * qty;
+      return sum + (pres?.precioConsignacion ?? 0) * qty;
     }, 0);
   }, [lines, presentaciones]);
 
@@ -123,7 +123,7 @@ export function ConsignationForm({ customers, products, isSaving, error, onSubmi
           {lines.map((line, idx) => {
             const pres = presentaciones.find((p) => String(p.id) === line.presentacionId);
             const qty = Number(line.cantidadEntregada) || 0;
-            const precioConsignacion = (pres?.pvp ?? 0) * 0.8;
+            const precioConsignacion = pres?.precioConsignacion ?? 0;
             const lineSubtotal = precioConsignacion * qty;
             const isLowStock = pres ? qty > pres.stock : false;
             return (

@@ -25,16 +25,9 @@ type Props = {
   onCancel: () => void;
 };
 
-function precioConTipo(pvp: number, tipo: string): number {
-  switch (tipo) {
-    case "CONTADO":
-      return pvp * 0.75;
-    case "MAYORISTA":
-      return pvp * 0.7;
-    default:
-      return pvp;
-  }
-}
+type TipoPrecio = "PVP" | "CONTADO" | "MAYORISTA";
+
+const toCents = (value: string | number) => Math.round(Number(value) * 100);
 
 export function SaleForm({ customers, products, isSaving, error, onSubmit, onCancel }: Props) {
   const [clienteId, setClienteId] = useState<string>("");
@@ -51,7 +44,12 @@ export function SaleForm({ customers, products, isSaving, error, onSubmit, onCan
         .map((pres) => ({
           id: pres.id,
           codigo: pres.codigo,
-          pvp: Number(pres.pvp),
+          // Precios calculados por el backend: misma regla y redondeo que al guardar la venta.
+          preciosCents: {
+            PVP: toCents(pres.pvp),
+            CONTADO: toCents(pres.preciosDerivados.contado),
+            MAYORISTA: toCents(pres.preciosDerivados.mayorista),
+          } satisfies Record<TipoPrecio, number>,
           stock: pres.stockActual,
           label: `${prod.nombre} — ${pres.cantidad} ${pres.unidadMedida} (${pres.codigo})`,
         })),
@@ -70,24 +68,31 @@ export function SaleForm({ customers, products, isSaving, error, onSubmit, onCan
   const removeLine = (idx: number) => setLines((cur) => (cur.length <= 1 ? cur : cur.filter((_, i) => i !== idx)));
 
   const totals = useMemo(() => {
-    let subtotalBruto = 0;
-    let descuentoTotal = 0;
-    let total = 0;
+    // En centavos, igual que el backend, para que la vista previa coincida con lo guardado.
+    let subtotalBrutoCents = 0;
+    let descuentoTotalCents = 0;
     const rows = lines.map((l) => {
       const pres = presentaciones.find((p) => String(p.id) === l.presentacionId);
-      const pvp = pres?.pvp ?? 0;
-      const precioBase = precioConTipo(pvp, tipoPrecio);
+      const precioBaseCents = pres?.preciosCents[tipoPrecio] ?? 0;
       const qty = Number(l.cantidad) || 0;
       const descPct = Number(l.descuentoPorcentaje) || 0;
-      const descuentoMonto = precioBase * (descPct / 100);
-      const precioFinal = precioBase - descuentoMonto;
-      const subtotal = precioFinal * qty;
-      subtotalBruto += precioBase * qty;
-      descuentoTotal += descuentoMonto * qty;
-      total += subtotal;
-      return { precioBase, descuentoMonto, precioFinal, subtotal };
+      const descuentoCents = Math.round((precioBaseCents * descPct) / 100);
+      const precioFinalCents = precioBaseCents - descuentoCents;
+      subtotalBrutoCents += precioBaseCents * qty;
+      descuentoTotalCents += descuentoCents * qty;
+      return {
+        precioBase: precioBaseCents / 100,
+        descuentoMonto: descuentoCents / 100,
+        precioFinal: precioFinalCents / 100,
+        subtotal: (precioFinalCents * qty) / 100,
+      };
     });
-    return { subtotalBruto, descuentoTotal, total, rows };
+    return {
+      subtotalBruto: subtotalBrutoCents / 100,
+      descuentoTotal: descuentoTotalCents / 100,
+      total: (subtotalBrutoCents - descuentoTotalCents) / 100,
+      rows,
+    };
   }, [lines, presentaciones, tipoPrecio]);
 
   const handleSubmit = (e: React.FormEvent) => {
