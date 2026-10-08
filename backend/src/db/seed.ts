@@ -6,7 +6,6 @@ import {
   productPresentations,
   products,
 } from "./schema/index.js";
-import { seedAdmin } from "./seedAdmin.js";
 
 const categoryData = [
   "Bioabonos",
@@ -407,9 +406,8 @@ async function getOrCreateProduct(
   return created.id;
 }
 
+// El administrador se crea aparte con `npm run db:seed-admin` para no resetear su contraseña al sembrar datos.
 async function seed() {
-  await seedAdmin();
-
   let categoriesCreated = 0;
   let productsCreated = 0;
   let presentationsCreated = 0;

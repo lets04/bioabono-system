@@ -105,7 +105,8 @@ export async function createInvitedUser(input: {
   return row;
 }
 
-export async function activateUser(id: number, passwordHash: string) {
+// El token se vuelve a comprobar en el WHERE para que dos solicitudes concurrentes no lo usen dos veces.
+export async function activateUser(id: number, activationTokenHash: string, passwordHash: string) {
   const now = new Date();
   const [row] = await db
     .update(users)
@@ -117,9 +118,10 @@ export async function activateUser(id: number, passwordHash: string) {
       activatedAt: now,
       activationTokenHash: null,
       activationTokenExpiresAt: null,
+      passwordChangedAt: now,
       updatedAt: now,
     })
-    .where(eq(users.id, id))
+    .where(and(eq(users.id, id), eq(users.activationTokenHash, activationTokenHash)))
     .returning();
   return row;
 }
@@ -160,7 +162,7 @@ export async function setPasswordResetToken(
   return row;
 }
 
-export async function consumePasswordReset(id: number, passwordHash: string) {
+export async function consumePasswordReset(id: number, resetTokenHash: string, passwordHash: string) {
   const now = new Date();
   const [row] = await db
     .update(users)
@@ -169,9 +171,10 @@ export async function consumePasswordReset(id: number, passwordHash: string) {
       passwordResetTokenHash: null,
       passwordResetTokenExpiresAt: null,
       passwordResetUsedAt: now,
+      passwordChangedAt: now,
       updatedAt: now,
     })
-    .where(eq(users.id, id))
+    .where(and(eq(users.id, id), eq(users.passwordResetTokenHash, resetTokenHash)))
     .returning();
   return row;
 }

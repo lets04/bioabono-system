@@ -48,6 +48,7 @@ export const users = pgTable(
     passwordResetTokenHash: text("password_reset_token_hash"),
     passwordResetTokenExpiresAt: timestamp("password_reset_token_expires_at", { withTimezone: true }),
     passwordResetUsedAt: timestamp("password_reset_used_at", { withTimezone: true }),
+    passwordChangedAt: timestamp("password_changed_at", { withTimezone: true }),
     ...timestamps,
   },
   (table) => ({

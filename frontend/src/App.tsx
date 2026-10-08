@@ -34,7 +34,7 @@ const allNavItems = [
   { id: "customers", label: "Clientes", icon: Users },
   { id: "suppliers", label: "Proveedores", icon: Truck },
   { id: "consignations", label: "Consignaciones", icon: Handshake },
-  { id: "reports", label: "Reportes", icon: BarChart3 },
+  { id: "reports", label: "Reportes", icon: BarChart3, adminOnly: true },
   { id: "users", label: "Usuarios", icon: UserCog, adminOnly: true },
 ] satisfies Array<{ id: View; label: string; icon: LucideIcon; adminOnly?: boolean }>;
 
@@ -150,7 +150,7 @@ function AuthenticatedApp({ isAdmin }: { isAdmin: boolean }) {
 
       {activeView === "sales" && <SalesView />}
 
-      {activeView === "reports" && <ReportsView />}
+      {activeView === "reports" && isAdmin && <ReportsView />}
 
       {activeView === "users" && isAdmin && <UsersView />}
     </AppLayout>

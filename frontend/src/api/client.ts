@@ -42,17 +42,20 @@ export async function apiRequest<T>(path: string, options?: RequestInit): Promis
 
   const data = await response.json().catch(() => null);
   if (!response.ok) {
-    if (response.status === 401 && !isPublicAuthPath(path)) {
-      clearSession();
-      if (!redirectingToLogin && (window.location.pathname === "/" || !isPublicFrontendPath())) {
-        redirectingToLogin = true;
-        window.location.assign("/");
-      }
-    }
+    if (response.status === 401 && !isPublicAuthPath(path)) handleUnauthorized();
     throw new ApiError(data?.message || "No se pudo completar la operación", response.status);
   }
 
   return data as T;
+}
+
+/** Sesión expirada o inválida: limpia la sesión y vuelve al login una sola vez. */
+export function handleUnauthorized() {
+  clearSession();
+  if (!redirectingToLogin && (window.location.pathname === "/" || !isPublicFrontendPath())) {
+    redirectingToLogin = true;
+    window.location.assign("/");
+  }
 }
 
 function isPublicFrontendPath() {

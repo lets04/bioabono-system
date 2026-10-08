@@ -7,13 +7,12 @@ export const requireAuth = new Elysia({ name: "require-auth" }).derive({ as: "sc
   return { authUser };
 });
 
-export const requireAdmin = new Elysia({ name: "require-admin" }).onBeforeHandle(
-  { as: "scoped" },
-  async ({ headers }) => {
-    const user = await authenticateHeader(headers.authorization);
-    if (user.rol !== "ADMIN") throw new Error("FORBIDDEN");
-  },
-);
+// Reutiliza el usuario ya autenticado por requireAuth en lugar de volver a consultar la base.
+export const requireAdmin = new Elysia({ name: "require-admin" })
+  .use(requireAuth)
+  .onBeforeHandle({ as: "scoped" }, ({ authUser }) => {
+    if (authUser?.rol !== "ADMIN") throw new Error("FORBIDDEN");
+  });
 
 export function actorId(authUser: AuthUser | undefined) {
   if (!authUser) throw new Error("UNAUTHORIZED");

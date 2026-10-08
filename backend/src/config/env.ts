@@ -4,7 +4,7 @@ config();
 
 export const env = {
   databaseUrl: required("DATABASE_URL"),
-  jwtSecret: required("JWT_SECRET"),
+  jwtSecret: jwtSecret(),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "8h",
   port: Number(process.env.PORT ?? 3000),
   frontendUrl: process.env.FRONTEND_URL ?? "http://localhost:5173",
@@ -22,6 +22,16 @@ export const env = {
   // Desfase horario del negocio para interpretar filtros de fecha (Bolivia = UTC-4)
   businessUtcOffset: process.env.BUSINESS_UTC_OFFSET ?? "-04:00",
 };
+
+function jwtSecret() {
+  const value = required("JWT_SECRET");
+  if (value.length < 32 || value === "change-me") {
+    const message = "JWT_SECRET es débil: usa al menos 32 caracteres aleatorios (p. ej. openssl rand -base64 48)";
+    if (process.env.NODE_ENV === "production") throw new Error(message);
+    console.warn(`[env] ${message}`);
+  }
+  return value;
+}
 
 function required(name: string) {
   const value = process.env[name];
