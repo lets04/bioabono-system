@@ -1,3 +1,4 @@
+import type { ReportFilters } from "../../types";
 import { useState } from "react";
 import { Handshake, Printer, Search } from "lucide-react";
 import { useConsignationsReport } from "../../hooks/useReports";
@@ -9,7 +10,7 @@ export function ConsignationsReport() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [estado, setEstado] = useState("");
-  const [applied, setApplied] = useState<any>({});
+  const [applied, setApplied] = useState<ReportFilters>({});
 
   const reportQuery = useConsignationsReport(applied);
 

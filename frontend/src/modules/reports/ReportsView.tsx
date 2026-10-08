@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { BarChart3, Handshake, Package, ShoppingCart, Receipt, ClipboardList, Printer } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { PurchaseReport } from "./PurchaseReport";
 import { SalesReport } from "./SalesReport";
 import { InventoryReport } from "./InventoryReport";
@@ -8,7 +9,7 @@ import { ConsignationsReport } from "./ConsignationsReport";
 
 type Tab = "purchases" | "sales" | "inventory" | "products" | "consignations";
 
-const tabs: Array<{ id: Tab; label: string; desc: string; icon: any }> = [
+const tabs: Array<{ id: Tab; label: string; desc: string; icon: LucideIcon }> = [
   { id: "purchases", label: "Compras", desc: "Historial y totales por proveedor", icon: ShoppingCart },
   { id: "sales", label: "Ventas", desc: "Ventas, descuentos y clientes", icon: Receipt },
   { id: "consignations", label: "Consignaciones", desc: "Entregas, devoluciones y ventas", icon: Handshake },

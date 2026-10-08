@@ -41,8 +41,8 @@ export function PurchaseReport() {
     setExportError(null);
     try {
       await reportsApi.exportPurchases(applied);
-    } catch (e: any) {
-      setExportError(e.message || "Error al exportar");
+    } catch (e) {
+      setExportError(e instanceof Error && e.message ? e.message : "Error al exportar");
     } finally {
       setExporting(false);
     }

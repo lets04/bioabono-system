@@ -1,3 +1,4 @@
+import type { ReportFilters } from "../../types";
 import { useState } from "react";
 import { FileSpreadsheet, Printer, Search } from "lucide-react";
 import { useInventoryReport } from "../../hooks/useReports";
@@ -9,7 +10,7 @@ import { reportsApi } from "../../api/reports";
 export function InventoryReport() {
   const [categoriaId, setCategoriaId] = useState("");
   const [estado, setEstado] = useState("");
-  const [applied, setApplied] = useState<any>({});
+  const [applied, setApplied] = useState<ReportFilters>({});
 
   const categoriesQuery = useCategories();
   const reportQuery = useInventoryReport(applied);
@@ -27,8 +28,8 @@ export function InventoryReport() {
     setExportError(null);
     try {
       await reportsApi.exportInventory(applied);
-    } catch (e: any) {
-      setExportError(e.message || "Error al exportar");
+    } catch (e) {
+      setExportError(e instanceof Error && e.message ? e.message : "Error al exportar");
     } finally {
       setExporting(false);
     }

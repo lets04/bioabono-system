@@ -21,6 +21,11 @@ export const env = {
   passwordResetTokenTtlHours: Number(process.env.PASSWORD_RESET_TOKEN_TTL_HOURS ?? 1),
   // Desfase horario del negocio para interpretar filtros de fecha (Bolivia = UTC-4)
   businessUtcOffset: process.env.BUSINESS_UTC_OFFSET ?? "-04:00",
+  // Orígenes permitidos para CORS (separados por coma) cuando el frontend se sirve desde otro dominio.
+  corsOrigins: (process.env.CORS_ORIGINS ?? "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean),
 };
 
 function jwtSecret() {
