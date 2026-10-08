@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useViewRoute } from "./hooks/useViewRoute";
 import { BarChart3, FolderTree, Handshake, LayoutDashboard, Package, Receipt, ShoppingCart, Truck, Users, Warehouse, UserCog } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AppLayout } from "./layouts/AppLayout";
@@ -67,7 +68,9 @@ export function App() {
 }
 
 function AuthenticatedApp({ isAdmin }: { isAdmin: boolean }) {
-  const [activeView, setActiveView] = useState<View>("dashboard");
+  const [activeView, setActiveView] = useViewRoute(
+    (view) => !allNavItems.find((item) => item.id === view)?.adminOnly || isAdmin,
+  );
   const [productSearch, setProductSearch] = useState("");
   const [supplierSearch, setSupplierSearch] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
@@ -77,12 +80,14 @@ function AuthenticatedApp({ isAdmin }: { isAdmin: boolean }) {
     [isAdmin],
   );
 
+  // Dashboard e Inventario usan siempre el catálogo completo; la búsqueda solo filtra la vista Productos.
+  const allProductsQuery = useProducts("");
   const productsQuery = useProducts(productSearch);
   const categoriesQuery = useCategories();
   const suppliersQuery = useSuppliers(supplierSearch);
   const customersQuery = useCustomers(customerSearch);
 
-  const products = productsQuery.data ?? [];
+  const products = allProductsQuery.data ?? [];
   const activeProducts = products.filter((p) => p.activo);
   const lowStockPresentaciones = products.flatMap((p) => p.presentaciones.filter((pres) => p.activo && pres.activo && pres.stockActual <= pres.stockMinimo));
   const title = navItems.find((item) => item.id === activeView)?.label ?? "";
@@ -105,7 +110,7 @@ function AuthenticatedApp({ isAdmin }: { isAdmin: boolean }) {
 
       {activeView === "products" && (
         <ProductsView
-          products={products}
+          products={productsQuery.data ?? []}
           categories={categoriesQuery.data ?? []}
           isLoading={productsQuery.isLoading || categoriesQuery.isLoading}
           isError={productsQuery.isError || categoriesQuery.isError}
@@ -122,7 +127,7 @@ function AuthenticatedApp({ isAdmin }: { isAdmin: boolean }) {
         />
       )}
 
-      {activeView === "inventory" && <InventoryView products={products} isLoading={productsQuery.isLoading} />}
+      {activeView === "inventory" && <InventoryView products={products} isLoading={allProductsQuery.isLoading} />}
 
       {activeView === "suppliers" && (
         <SuppliersView

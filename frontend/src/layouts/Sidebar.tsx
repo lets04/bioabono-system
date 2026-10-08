@@ -24,14 +24,14 @@ export function Sidebar({
       {/* =========================
           SIDEBAR DESKTOP
           ========================= */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col bg-bio-dark text-white md:flex">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col bg-bio-dark text-white md:flex print:hidden">
 
         {/* Cabecera blanca con logo */}
-        <div className="flex h-25 shrink-0 items-center justify-center bg-bio-dark px-6">
+        <div className="flex h-24 shrink-0 items-center justify-center bg-bio-dark px-6">
           <img
             src={logoBioabono}
             alt="BIOABONO"
-            className="max-h-23 w-auto object-contain"
+            className="max-h-[92px] w-auto object-contain"
           />
         </div>
 
@@ -43,6 +43,7 @@ export function Sidebar({
             return (
               <button
                 key={item.id}
+                aria-current={activeView === item.id ? "page" : undefined}
                 onClick={() => onNavigate(item.id)}
                 className={`flex items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition ${
                   activeView === item.id
@@ -86,11 +87,12 @@ export function MobileSidebar({
 
       {/* Sidebar mobile */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col bg-bio-dark text-white shadow-2xl transition-transform duration-300 md:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col bg-bio-dark text-white shadow-2xl transition-[transform,visibility] duration-300 md:hidden print:hidden ${
           isOpen
-            ? "translate-x-0"
-            : "-translate-x-full"
+            ? "visible translate-x-0"
+            : "invisible -translate-x-full"
         }`}
+        aria-hidden={!isOpen}
       >
         {/* Cabecera */}
         <div className="relative flex h-28 shrink-0 items-center justify-center bg-bio-dark px-4">
@@ -99,7 +101,7 @@ export function MobileSidebar({
           <img
             src={logoBioabono}
             alt="BIOABONO"
-            className="max-h-25 max-w-[190px] w-auto object-contain"
+            className="max-h-[100px] max-w-[190px] w-auto object-contain"
           />
 
           {/* Botón cerrar */}
@@ -130,6 +132,7 @@ export function MobileSidebar({
             return (
               <button
                 key={item.id}
+                aria-current={activeView === item.id ? "page" : undefined}
                 onClick={() => {
                   onNavigate(item.id);
                   onClose();

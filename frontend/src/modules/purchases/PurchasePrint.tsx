@@ -17,7 +17,7 @@ export function PurchasePrint({
   });
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-white p-6 print:p-0">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-white p-6 print:static print:overflow-visible print:p-0">
       <style>{`@media print { body * { visibility: hidden; } #print-area, #print-area * { visibility: visible; } #print-area { position: absolute; left: 0; top: 0; width: 100%; } .no-print { display: none; } }`}</style>
       <div id="print-area" className="mx-auto max-w-3xl bg-white">
         <div className="no-print mb-4 flex justify-end gap-2">

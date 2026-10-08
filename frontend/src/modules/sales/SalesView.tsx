@@ -5,6 +5,8 @@ import { Modal } from "../../components/ui/Modal";
 import { IconButton } from "../../components/ui/IconButton";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { DataState } from "../../components/ui/DataState";
+import { DetailLoaderError } from "../../components/ui/DetailLoaderError";
+import { useDetailLoader } from "../../hooks/useDetailLoader";
 import { money } from "../../utils/format";
 import { salesApi } from "../../api/sales";
 import { useSales } from "../../hooks/useSales";
@@ -43,15 +45,9 @@ export function SalesView() {
     },
   });
 
-  const handleSelect = async (id: number) => {
-    const sale = await salesApi.get(id);
-    setSelected(sale);
-  };
-
-  const handlePrint = async (id: number) => {
-    const sale = await salesApi.get(id);
-    setPrintSale(sale);
-  };
+  const detail = useDetailLoader(salesApi.get);
+  const handleSelect = (id: number) => detail.load(id, setSelected);
+  const handlePrint = (id: number) => detail.load(id, setPrintSale);
 
   return (
     <div>
@@ -67,6 +63,7 @@ export function SalesView() {
       </div>
 
       <DataState isLoading={salesQuery.isLoading} isError={salesQuery.isError} />
+      <DetailLoaderError error={detail.error} onDismiss={detail.clearError} />
 
       {!salesQuery.isLoading && !salesQuery.isError && (
         <div className="mt-4 overflow-hidden rounded-lg border border-stone-200 bg-white">
@@ -115,14 +112,14 @@ export function SalesView() {
       )}
 
       {isCreating && (
-        <Modal title="Nueva venta" onClose={() => setIsCreating(false)}>
+        <Modal title="Nueva venta" onClose={() => { setIsCreating(false); createMutation.reset(); }}>
           <SaleForm
             customers={customersQuery.data ?? []}
             products={productsQuery.data ?? []}
             isSaving={createMutation.isPending}
             error={createMutation.error?.message}
             onSubmit={(payload) => createMutation.mutate(payload)}
-            onCancel={() => setIsCreating(false)}
+            onCancel={() => { setIsCreating(false); createMutation.reset(); }}
           />
         </Modal>
       )}

@@ -11,6 +11,8 @@ import { Modal } from "../../components/ui/Modal";
 import { IconButton } from "../../components/ui/IconButton";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { DataState } from "../../components/ui/DataState";
+import { DetailLoaderError } from "../../components/ui/DetailLoaderError";
+import { useDetailLoader } from "../../hooks/useDetailLoader";
 
 import { consignationsApi } from "../../api/consignations";
 import { useConsignations } from "../../hooks/useConsignations";
@@ -113,18 +115,8 @@ export function ConsignationsView() {
   // ABRIR CONSIGNACIÓN
   // ============================================================
 
-  const handleSelect = async (id: number) => {
-    try {
-      const consignation = await consignationsApi.get(id);
-
-      setSelected(consignation);
-    } catch (error) {
-      console.error(
-        "Error al obtener la consignación:",
-        error,
-      );
-    }
-  };
+  const detail = useDetailLoader(consignationsApi.get);
+  const handleSelect = (id: number) => detail.load(id, setSelected);
 
   return (
     <div>
@@ -194,6 +186,8 @@ export function ConsignationsView() {
         isLoading={consignationsQuery.isLoading}
         isError={consignationsQuery.isError}
       />
+
+      <DetailLoaderError error={detail.error} onDismiss={detail.clearError} />
 
       {/* ======================================================
           TABLA
@@ -345,7 +339,7 @@ export function ConsignationsView() {
       {isCreating && (
         <Modal
           title="Nueva consignación"
-          onClose={() => setIsCreating(false)}
+          onClose={() => { setIsCreating(false); createMutation.reset(); }}
         >
           <ConsignationForm
             customers={customersQuery.data ?? []}
@@ -369,7 +363,7 @@ export function ConsignationsView() {
       {selected && (
         <Modal
           title={`Consignación ${selected.numero}`}
-          onClose={() => setSelected(null)}
+          onClose={() => { setSelected(null); liquidateMutation.reset(); }}
         >
           <ConsignationDetailView
             consignation={selected}

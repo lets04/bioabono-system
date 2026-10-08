@@ -30,7 +30,7 @@ export function AppLayout({
   const { user, logout } = useAuth();
 
   return (
-    <div className="h-screen overflow-hidden bg-bio-cream text-stone-800">
+    <div className="h-screen overflow-hidden bg-bio-cream text-stone-800 print:h-auto print:overflow-visible print:bg-white">
 
       <Sidebar
         navItems={navItems}
@@ -46,8 +46,8 @@ export function AppLayout({
         onClose={() => setMobileOpen(false)}
       />
 
-      <main className="ml-0 h-screen min-w-0 overflow-y-auto md:ml-64">
-        <header className="flex items-center gap-3 px-4 py-4 md:px-8 md:py-5">
+      <main className="ml-0 h-screen min-w-0 overflow-y-auto md:ml-64 print:ml-0 print:h-auto print:overflow-visible">
+        <header className="flex items-center gap-3 px-4 py-4 md:px-8 md:py-5 print:hidden">
           <button
             onClick={() => setMobileOpen(true)}
             className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-700 shadow-sm hover:bg-stone-50 md:hidden"

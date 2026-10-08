@@ -5,6 +5,8 @@ import { Modal } from "../../components/ui/Modal";
 import { IconButton } from "../../components/ui/IconButton";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { DataState } from "../../components/ui/DataState";
+import { DetailLoaderError } from "../../components/ui/DetailLoaderError";
+import { useDetailLoader } from "../../hooks/useDetailLoader";
 import { money } from "../../utils/format";
 import { purchasesApi } from "../../api/purchases";
 import { useProducts } from "../../hooks/useProducts";
@@ -39,20 +41,13 @@ export function PurchasesView() {
     },
   });
 
-  const handleSelect = async (id: number) => {
-    try {
-      const purchase = await purchasesApi.get(id);
+  const detail = useDetailLoader(purchasesApi.get);
+  const handleSelect = (id: number) =>
+    detail.load(id, (purchase) => {
       setSelectedPurchase(purchase);
       setSelectedId(id);
-    } catch {
-      // handled via state
-    }
-  };
-
-  const handlePrintFromList = async (id: number) => {
-    const purchase = await purchasesApi.get(id);
-    setPrintPurchase(purchase);
-  };
+    });
+  const handlePrintFromList = (id: number) => detail.load(id, setPrintPurchase);
 
   return (
     <div>
@@ -76,6 +71,7 @@ export function PurchasesView() {
       </div>
 
       <DataState isLoading={purchasesQuery.isLoading} isError={purchasesQuery.isError} />
+      <DetailLoaderError error={detail.error} onDismiss={detail.clearError} />
 
       {!purchasesQuery.isLoading && !purchasesQuery.isError && (
         <div className="mt-4 overflow-hidden rounded-lg border border-stone-200 bg-white">
@@ -119,14 +115,14 @@ export function PurchasesView() {
       )}
 
       {isCreating && (
-        <Modal title="Nueva compra" onClose={() => setIsCreating(false)}>
+        <Modal title="Nueva compra" onClose={() => { setIsCreating(false); createMutation.reset(); }}>
           <PurchaseForm
             suppliers={suppliersQuery.data ?? []}
             products={productsQuery.data ?? []}
             isSaving={createMutation.isPending}
             error={createMutation.error?.message}
             onSubmit={(payload) => createMutation.mutate(payload)}
-            onCancel={() => setIsCreating(false)}
+            onCancel={() => { setIsCreating(false); createMutation.reset(); }}
           />
         </Modal>
       )}
