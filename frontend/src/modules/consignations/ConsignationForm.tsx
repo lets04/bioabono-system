@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { Field } from "../../components/ui/Field";
+import { Field, ReadonlyField } from "../../components/ui/Field";
+import { PresentationSelect } from "../../components/ui/PresentationSelect";
 import { dateInputToISO, hasDuplicates, money, todayLocal } from "../../utils/format";
 import type { Customer, Product } from "../../types";
 
@@ -39,7 +40,10 @@ export function ConsignationForm({ customers, products, isSaving, error, onSubmi
           codigo: pres.codigo,
           precioConsignacion: Number(pres.preciosDerivados.consignacion),
           stock: pres.stockActual,
-          label: `${prod.nombre} — ${pres.cantidad} ${pres.unidadMedida} (${pres.codigo})`,
+          stockMinimo: pres.stockMinimo,
+          nombre: prod.nombre,
+          medida: `${pres.cantidad} ${pres.unidadMedida}`,
+          price: money(pres.preciosDerivados.consignacion),
         })),
     );
   }, [products]);
@@ -108,18 +112,20 @@ export function ConsignationForm({ customers, products, isSaving, error, onSubmi
       </div>
 
       <Field label="Observación">
-        <textarea value={observacion} onChange={(e) => setObservacion(e.target.value)} className="input min-h-16 resize-y" placeholder="Opcional" />
+        <textarea value={observacion} onChange={(e) => setObservacion(e.target.value)} className="input resize-y" rows={2} placeholder="Opcional" />
       </Field>
 
-      <div className="rounded-lg border border-stone-200 bg-white">
-        <div className="flex items-center justify-between border-b border-stone-200 px-4 py-3">
-          <h3 className="text-sm font-semibold text-bio-dark">Productos a consignar</h3>
-          <button type="button" onClick={addLine} className="inline-flex items-center gap-1 rounded-md border border-bio-green px-2.5 py-1.5 text-xs font-semibold text-bio-green hover:bg-bio-green/10">
+      <div className="form-section">
+        <div className="form-section-header">
+          <h3 className="text-sm font-semibold text-bio-dark">
+            Productos a consignar <span className="ml-1 rounded-full bg-bio-green px-2 py-0.5 text-[11px] font-semibold text-white">{lines.length}</span>
+          </h3>
+          <button type="button" onClick={addLine} className="btn-add">
             <Plus size={14} /> Agregar producto
           </button>
         </div>
 
-        <div className="grid gap-3 p-4">
+        <div className="grid gap-3 bg-bio-cream/70 p-4">
           {lines.map((line, idx) => {
             const pres = presentaciones.find((p) => String(p.id) === line.presentacionId);
             const qty = Number(line.cantidadEntregada) || 0;
@@ -127,24 +133,18 @@ export function ConsignationForm({ customers, products, isSaving, error, onSubmi
             const lineSubtotal = precioConsignacion * qty;
             const isLowStock = pres ? qty > pres.stock : false;
             return (
-              <div key={idx} className="grid gap-3 rounded-lg border border-stone-200 bg-stone-50 p-3 sm:grid-cols-[1fr_110px_120px_110px_auto]">
+              <div key={idx} className="line-card sm:grid-cols-[1fr_110px_120px_120px_40px]">
                 <Field label="Presentación">
-                  <select
+                  <PresentationSelect
                     required
+                    options={presentaciones}
                     value={line.presentacionId}
-                    onChange={(e) => updateLine(idx, "presentacionId", e.target.value)}
-                    className="input bg-white"
-                  >
-                    <option value="">Seleccionar presentación</option>
-                    {presentaciones.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.label} — Stock {p.stock}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => updateLine(idx, "presentacionId", v)}
+                    usedIds={lines.map((l) => l.presentacionId)}
+                  />
                   {pres && <span className={`text-xs ${isLowStock ? "text-red-600 font-semibold" : "text-stone-500"}`}>Stock: {pres.stock} {isLowStock && "— insuficiente"}</span>}
                 </Field>
-                <Field label="Cant. entregada">
+                <Field label="Cantidad">
                   <input
                     required
                     min={1}
@@ -155,17 +155,11 @@ export function ConsignationForm({ customers, products, isSaving, error, onSubmi
                     className="input bg-white"
                   />
                 </Field>
-                <div className="grid gap-1">
-                  <span className="text-xs font-medium text-stone-500">P. consig. (×0.80)</span>
-                  <div className="flex h-11 items-center rounded-lg border border-stone-200 bg-white px-3 text-sm font-semibold text-bio-dark">{money(precioConsignacion)}</div>
-                </div>
-                <div className="grid gap-1">
-                  <span className="text-xs font-medium text-stone-500">Subtotal referencial</span>
-                  <div className="flex h-11 items-center rounded-lg border border-stone-200 bg-white px-3 text-sm font-semibold text-bio-dark">{money(lineSubtotal)}</div>
-                </div>
-                <div className="flex items-end pb-1">
+                <ReadonlyField label="P. consig." value={money(precioConsignacion)} hint="PVP × 0.80" />
+                <ReadonlyField label="Subtotal" value={money(lineSubtotal)} />
+                <div className="flex justify-end sm:mt-8">
                   {lines.length > 1 && (
-                    <button type="button" onClick={() => removeLine(idx)} className="rounded p-2 text-stone-500 hover:bg-red-50 hover:text-red-600">
+                    <button type="button" onClick={() => removeLine(idx)} aria-label="Quitar línea" title="Quitar línea" className="rounded-lg p-2 text-stone-500 transition hover:bg-red-50 hover:text-red-600">
                       <Trash2 size={16} />
                     </button>
                   )}
@@ -175,11 +169,12 @@ export function ConsignationForm({ customers, products, isSaving, error, onSubmi
           })}
         </div>
 
-        <div className="border-t border-stone-200 bg-stone-50 px-4 py-3 text-right text-sm">
-          <div className="text-stone-600">
-            Total referencial (estimado por lo entregado): <span className="font-bold text-bio-dark">{money(totalReferencial)}</span>
+        <div className="form-total">
+          <p className="text-xs text-white/70">El pago se calculará al liquidar con los precios de consignación registrados.</p>
+          <div className="flex items-baseline justify-between gap-4 sm:justify-end">
+            <span className="text-sm font-medium uppercase tracking-wide text-white/80">Total referencial</span>
+            <span className="text-xl font-bold tabular-nums text-bio-light">{money(totalReferencial)}</span>
           </div>
-          <div className="text-xs text-stone-500">El pago se calculará al liquidar con los precios de consignación registrados.</div>
         </div>
       </div>
 
@@ -187,11 +182,11 @@ export function ConsignationForm({ customers, products, isSaving, error, onSubmi
         <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{localError ?? error}</div>
       )}
 
-      <div className="flex justify-end gap-3">
-        <button type="button" onClick={onCancel} className="h-11 rounded-lg border border-stone-300 px-5 text-sm font-semibold text-stone-700 hover:bg-stone-50">
+      <div className="form-actions">
+        <button type="button" onClick={onCancel} className="btn-secondary px-5">
           Cancelar
         </button>
-        <button disabled={isSaving} className="h-11 rounded-lg bg-bio-green px-6 text-sm font-semibold text-white hover:bg-bio-dark disabled:opacity-60">
+        <button disabled={isSaving} className="btn-primary px-6">
           {isSaving ? "Guardando..." : "Registrar consignación"}
         </button>
       </div>

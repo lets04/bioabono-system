@@ -86,7 +86,7 @@ export function SupplierForm({ supplier, isSaving, error, onSubmit }: Props) {
 
       <button
         disabled={isSaving}
-        className="h-11 rounded-lg bg-bio-green px-4 text-sm font-semibold text-white hover:bg-bio-dark disabled:opacity-60"
+        className="btn-primary"
       >
         {isSaving ? "Guardando..." : "Guardar proveedor"}
       </button>

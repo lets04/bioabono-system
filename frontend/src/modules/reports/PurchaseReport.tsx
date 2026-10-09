@@ -110,7 +110,7 @@ export function PurchaseReport() {
                     <th className="px-4 py-2 text-right">Total</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stone-100">
+                <tbody className="table-body divide-y divide-stone-100">
                   {reportQuery.data.summary.porProveedor.map((p) => (
                     <tr key={p.proveedorId}>
                       <td className="px-4 py-2 font-medium">{p.proveedorNombre}</td>
@@ -155,7 +155,7 @@ export function PurchaseReport() {
                     <th className="px-4 py-2 text-right">Subtotal</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stone-100">
+                <tbody className="table-body divide-y divide-stone-100">
                   {reportQuery.data.rows.map((r, idx) => (
                     <tr key={`${r.id}-${r.presentacionId}-${idx}`}>
                       <td className="px-4 py-2 text-xs">{new Date(r.fecha).toLocaleDateString("es-BO")}</td>

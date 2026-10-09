@@ -3,7 +3,7 @@ import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const BIO_DARK = "24421F";
-const BIO_GREEN = "4F8A2F";
+const BIO_GREEN = "467D2A";
 const HEADER_FILL = {
   type: "pattern",
   pattern: "solid",

@@ -66,7 +66,7 @@ export function CustomerForm({ customer, isSaving, error, onSubmit }: Props) {
 
       {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
-      <button disabled={isSaving} className="h-11 rounded-lg bg-bio-green px-4 text-sm font-semibold text-white hover:bg-bio-dark disabled:opacity-60">
+      <button disabled={isSaving} className="btn-primary">
         {isSaving ? "Guardando..." : "Guardar cliente"}
       </button>
     </form>

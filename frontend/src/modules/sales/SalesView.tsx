@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Eye, Plus, Printer, Search } from "lucide-react";
+import { Eye, Plus, Printer } from "lucide-react";
+import { useFeedback } from "../../components/ui/Feedback";
 import { Modal } from "../../components/ui/Modal";
 import { IconButton } from "../../components/ui/IconButton";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { DataState } from "../../components/ui/DataState";
+import { SearchInput } from "../../components/ui/SearchInput";
 import { DetailLoaderError } from "../../components/ui/DetailLoaderError";
 import { useDetailLoader } from "../../hooks/useDetailLoader";
 import { money } from "../../utils/format";
@@ -19,6 +21,7 @@ import type { SaleDetail } from "../../types";
 
 export function SalesView() {
   const queryClient = useQueryClient();
+  const { notify } = useFeedback();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<SaleDetail | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -39,6 +42,7 @@ export function SalesView() {
     onSuccess: (sale) => {
       queryClient.invalidateQueries({ queryKey: ["sales"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      notify(`Venta ${sale.numero} registrada`);
       setIsCreating(false);
       setSelected(sale);
       setPrintSale(sale);
@@ -52,11 +56,8 @@ export function SalesView() {
   return (
     <div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex h-11 w-full items-center gap-2 rounded-lg border border-stone-200 bg-white px-3 sm:max-w-sm">
-          <Search size={16} className="text-stone-400" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por número o cliente" className="w-full bg-transparent text-sm outline-none" />
-        </div>
-        <button onClick={() => setIsCreating(true)} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-bio-green px-4 text-sm font-semibold text-white hover:bg-bio-dark">
+        <SearchInput value={search} onChange={setSearch} placeholder="Buscar por número o cliente" />
+        <button onClick={() => setIsCreating(true)} className="btn-primary">
           <Plus size={17} />
           Nueva venta
         </button>
@@ -66,10 +67,10 @@ export function SalesView() {
       <DetailLoaderError error={detail.error} onDismiss={detail.clearError} />
 
       {!salesQuery.isLoading && !salesQuery.isError && (
-        <div className="mt-4 overflow-hidden rounded-lg border border-stone-200 bg-white">
+        <div className="table-card">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[820px] text-left text-sm">
-              <thead className="bg-stone-50 text-xs uppercase text-stone-500">
+              <thead className="table-head">
                 <tr>
                   <th className="px-4 py-3">N.º venta</th>
                   <th className="px-4 py-3">Fecha</th>
@@ -80,7 +81,7 @@ export function SalesView() {
                   <th className="px-4 py-3 text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
+              <tbody className="table-body divide-y divide-stone-100">
                 {(salesQuery.data ?? []).map((sale) => (
                   <tr key={sale.id}>
                     <td className="px-4 py-3 font-mono font-semibold text-bio-dark">
@@ -107,7 +108,7 @@ export function SalesView() {
               </tbody>
             </table>
           </div>
-          {(salesQuery.data ?? []).length === 0 && <EmptyState text="No hay ventas registradas." />}
+          {(salesQuery.data ?? []).length === 0 && <EmptyState text={search ? "Ninguna venta coincide con la búsqueda." : "No hay ventas registradas."} />}
         </div>
       )}
 

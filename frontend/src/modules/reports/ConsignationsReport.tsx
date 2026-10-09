@@ -106,7 +106,7 @@ export function ConsignationsReport() {
                     <th className="px-3 py-2">Estado</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stone-100">
+                <tbody className="table-body divide-y divide-stone-100">
                   {reportQuery.data.rows.map((r, idx) => (
                     <tr key={`${r.id}-${r.presentacionId}-${idx}`}>
                       <td className="px-3 py-2 text-xs">{new Date(r.fechaEntrega).toLocaleDateString("es-BO")}</td>

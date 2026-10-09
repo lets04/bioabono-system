@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Eye, Plus, Printer, Search } from "lucide-react";
+import { Eye, Plus, Printer } from "lucide-react";
+import { useFeedback } from "../../components/ui/Feedback";
 import { Modal } from "../../components/ui/Modal";
 import { IconButton } from "../../components/ui/IconButton";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { DataState } from "../../components/ui/DataState";
+import { SearchInput } from "../../components/ui/SearchInput";
 import { DetailLoaderError } from "../../components/ui/DetailLoaderError";
 import { useDetailLoader } from "../../hooks/useDetailLoader";
 import { money } from "../../utils/format";
@@ -19,6 +21,7 @@ import type { PurchaseDetail as DetailType } from "../../types";
 
 export function PurchasesView() {
   const queryClient = useQueryClient();
+  const { notify } = useFeedback();
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -35,6 +38,7 @@ export function PurchasesView() {
     onSuccess: (purchase) => {
       queryClient.invalidateQueries({ queryKey: ["purchases"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      notify(`Compra ${purchase.numero} registrada`);
       setIsCreating(false);
       setSelectedPurchase(purchase);
       setPrintPurchase(purchase);
@@ -52,18 +56,10 @@ export function PurchasesView() {
   return (
     <div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex h-11 w-full items-center gap-2 rounded-lg border border-stone-200 bg-white px-3 sm:max-w-sm">
-          <Search size={16} className="text-stone-400" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por número o proveedor"
-            className="w-full bg-transparent text-sm outline-none"
-          />
-        </div>
+        <SearchInput value={search} onChange={setSearch} placeholder="Buscar por número o proveedor" />
         <button
           onClick={() => setIsCreating(true)}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-bio-green px-4 text-sm font-semibold text-white hover:bg-bio-dark"
+          className="btn-primary"
         >
           <Plus size={17} />
           Nueva compra
@@ -74,10 +70,10 @@ export function PurchasesView() {
       <DetailLoaderError error={detail.error} onDismiss={detail.clearError} />
 
       {!purchasesQuery.isLoading && !purchasesQuery.isError && (
-        <div className="mt-4 overflow-hidden rounded-lg border border-stone-200 bg-white">
+        <div className="table-card">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[820px] text-left text-sm">
-              <thead className="bg-stone-50 text-xs uppercase text-stone-500">
+              <thead className="table-head">
                 <tr>
                   <th className="px-4 py-3">N.º compra</th>
                   <th className="px-4 py-3">Fecha</th>
@@ -88,7 +84,7 @@ export function PurchasesView() {
                   <th className="px-4 py-3 text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
+              <tbody className="table-body divide-y divide-stone-100">
                 {(purchasesQuery.data ?? []).map((purchase) => (
                   <tr key={purchase.id}>
                     <td className="px-4 py-3 font-mono font-semibold text-bio-dark">{purchase.numero}</td>

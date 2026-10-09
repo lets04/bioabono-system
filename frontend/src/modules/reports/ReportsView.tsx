@@ -22,25 +22,34 @@ export function ReportsView() {
 
   return (
     <div className="grid gap-6">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div role="tablist" aria-label="Tipo de reporte" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {tabs.map((t) => {
           const Icon = t.icon;
           const isActive = active === t.id;
           return (
             <button
               key={t.id}
+              type="button"
+              role="tab"
+              id={`tab-${t.id}`}
+              aria-selected={isActive}
+              aria-controls="report-panel"
               onClick={() => setActive(t.id)}
-              className={`rounded-lg border p-4 text-left transition ${isActive ? "border-bio-green bg-bio-green text-white shadow" : "border-stone-200 bg-white hover:border-bio-green"}`}
+              className={`flex items-start gap-3 rounded-xl border p-4 text-left shadow-sm transition ${isActive ? "border-bio-green bg-white ring-2 ring-bio-green/20" : "border-stone-200 bg-white hover:border-bio-green/60"}`}
             >
-              <Icon size={22} className={isActive ? "text-white" : "text-bio-green"} />
-              <div className={`mt-2 text-sm font-semibold ${isActive ? "text-white" : "text-stone-800"}`}>{t.label}</div>
-              <div className={`text-xs ${isActive ? "text-white/80" : "text-stone-500"}`}>{t.desc}</div>
+              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${isActive ? "bg-bio-green text-white" : "bg-bio-green/10 text-bio-green"}`}>
+                <Icon size={18} />
+              </span>
+              <span className="min-w-0">
+                <span className={`block text-sm font-semibold ${isActive ? "text-bio-dark" : "text-stone-800"}`}>{t.label}</span>
+                <span className="block text-xs text-stone-500">{t.desc}</span>
+              </span>
             </button>
           );
         })}
       </div>
 
-      <div className="rounded-lg border border-stone-200 bg-white p-4 sm:p-6">
+      <div id="report-panel" role="tabpanel" aria-labelledby={`tab-${active}`} className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
         {active === "purchases" && <PurchaseReport />}
         {active === "sales" && <SalesReport />}
         {active === "consignations" && <ConsignationsReport />}

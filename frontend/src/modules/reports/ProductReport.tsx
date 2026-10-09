@@ -8,6 +8,7 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { money } from "../../utils/format";
 import { reportsApi } from "../../api/reports";
 import { ReportPrintPreview } from "../../components/print/ReportPrintPreview";
+import { CategorySelect } from "../../components/ui/CategorySelect";
 
 export function ProductReport() {
   const [categoriaId, setCategoriaId] = useState("");
@@ -43,14 +44,7 @@ export function ProductReport() {
       <div className="grid gap-3 rounded-lg border border-stone-200 bg-stone-50 p-4 sm:grid-cols-4">
         <div className="grid gap-1">
           <label className="text-xs font-semibold text-stone-600">Categoría</label>
-          <select value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)} className="input bg-white">
-            <option value="">Todas</option>
-            {(categoriesQuery.data ?? []).map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nombre}
-              </option>
-            ))}
-          </select>
+          <CategorySelect categories={categoriesQuery.data ?? []} value={categoriaId} onChange={setCategoriaId} emptyLabel="Todas" />
         </div>
         <div className="grid gap-1">
           <label className="text-xs font-semibold text-stone-600">Estado</label>
@@ -125,7 +119,7 @@ export function ProductReport() {
                     <th className="px-4 py-2">Estado</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stone-100">
+                <tbody className="table-body divide-y divide-stone-100">
                   {reportQuery.data.rows.map((r) => {
                     const estado = !r.activo || !r.productoActivo ? "Inactivo" : r.stockActual === 0 ? "Sin stock" : r.stockActual <= r.stockMinimo ? "Bajo" : "Normal";
                     const badge =

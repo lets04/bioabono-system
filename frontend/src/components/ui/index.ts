@@ -5,3 +5,6 @@ export { IconButton } from "./IconButton";
 export { EmptyState } from "./EmptyState";
 export { DataState } from "./DataState";
 export { MetricCard } from "./MetricCard";
+export { SearchInput } from "./SearchInput";
+export { Spinner } from "./Spinner";
+export { FeedbackProvider, useFeedback } from "./Feedback";

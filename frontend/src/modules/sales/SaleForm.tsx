@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { Field } from "../../components/ui/Field";
+import { Field, ReadonlyField } from "../../components/ui/Field";
+import { PresentationSelect } from "../../components/ui/PresentationSelect";
 import { dateInputToISO, hasDuplicates, money, todayLocal } from "../../utils/format";
 import type { Customer, Product } from "../../types";
 
@@ -51,10 +52,17 @@ export function SaleForm({ customers, products, isSaving, error, onSubmit, onCan
             MAYORISTA: toCents(pres.preciosDerivados.mayorista),
           } satisfies Record<TipoPrecio, number>,
           stock: pres.stockActual,
-          label: `${prod.nombre} — ${pres.cantidad} ${pres.unidadMedida} (${pres.codigo})`,
+          stockMinimo: pres.stockMinimo,
+          nombre: prod.nombre,
+          medida: `${pres.cantidad} ${pres.unidadMedida}`,
         })),
     );
   }, [products]);
+
+  const presentationOptions = useMemo(
+    () => presentaciones.map((p) => ({ ...p, price: money(p.preciosCents[tipoPrecio] / 100) })),
+    [presentaciones, tipoPrecio],
+  );
 
   const updateLine = (idx: number, field: keyof Line, value: string) => {
     setLines((cur) => {
@@ -149,38 +157,34 @@ export function SaleForm({ customers, products, isSaving, error, onSubmit, onCan
       </div>
 
       <Field label="Observación">
-        <textarea value={observacion} onChange={(e) => setObservacion(e.target.value)} className="input min-h-16 resize-y" placeholder="Opcional" />
+        <textarea value={observacion} onChange={(e) => setObservacion(e.target.value)} className="input resize-y" rows={2} placeholder="Opcional" />
       </Field>
 
-      <div className="rounded-lg border border-stone-200 bg-white">
-        <div className="flex items-center justify-between border-b border-stone-200 px-4 py-3">
-          <h3 className="text-sm font-semibold text-bio-dark">Detalle de venta</h3>
-          <button type="button" onClick={addLine} className="inline-flex items-center gap-1 rounded-md border border-bio-green px-2.5 py-1.5 text-xs font-semibold text-bio-green hover:bg-bio-green/10">
+      <div className="form-section">
+        <div className="form-section-header">
+          <h3 className="text-sm font-semibold text-bio-dark">
+            Detalle de venta <span className="ml-1 rounded-full bg-bio-green px-2 py-0.5 text-[11px] font-semibold text-white">{lines.length}</span>
+          </h3>
+          <button type="button" onClick={addLine} className="btn-add">
             <Plus size={14} /> Agregar producto
           </button>
         </div>
 
-        <div className="grid gap-3 p-4">
+        <div className="grid gap-3 bg-bio-cream/70 p-4">
           {lines.map((line, idx) => {
             const pres = presentaciones.find((p) => String(p.id) === line.presentacionId);
             const info = totals.rows[idx];
             const isLowStock = pres ? Number(line.cantidad) > pres.stock : false;
             return (
-              <div key={idx} className="grid gap-3 rounded-lg border border-stone-200 bg-stone-50 p-3 sm:grid-cols-[1fr_90px_90px_110px_110px_auto]">
+              <div key={idx} className="line-card sm:grid-cols-[1fr_90px_90px_110px_120px_40px]">
                 <Field label="Presentación">
-                  <select
+                  <PresentationSelect
                     required
+                    options={presentationOptions}
                     value={line.presentacionId}
-                    onChange={(e) => updateLine(idx, "presentacionId", e.target.value)}
-                    className="input bg-white"
-                  >
-                    <option value="">Seleccionar presentación</option>
-                    {presentaciones.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.label} — Stock {p.stock}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => updateLine(idx, "presentacionId", v)}
+                    usedIds={lines.map((l) => l.presentacionId)}
+                  />
                   {pres && <span className={`text-xs ${isLowStock ? "text-red-600 font-semibold" : "text-stone-500"}`}>Stock: {pres.stock} {isLowStock && "— insuficiente"}</span>}
                 </Field>
                 <Field label="Cantidad">
@@ -197,18 +201,11 @@ export function SaleForm({ customers, products, isSaving, error, onSubmit, onCan
                 <Field label="Desc. %">
                   <input min={0} max={100} step={0.1} type="number" value={line.descuentoPorcentaje} onChange={(e) => updateLine(idx, "descuentoPorcentaje", e.target.value)} className="input bg-white" />
                 </Field>
-                <div className="grid gap-1">
-                  <span className="text-xs font-medium text-stone-500">P. unit.</span>
-                  <div className="flex h-11 items-center rounded-lg border border-stone-200 bg-white px-3 text-sm font-semibold text-bio-dark">{money(info?.precioFinal ?? 0)}</div>
-                  <span className="text-xs text-stone-400">Base {money(info?.precioBase ?? 0)}</span>
-                </div>
-                <div className="grid gap-1">
-                  <span className="text-xs font-medium text-stone-500">Subtotal</span>
-                  <div className="flex h-11 items-center rounded-lg border border-stone-200 bg-white px-3 text-sm font-semibold text-bio-dark">{money(info?.subtotal ?? 0)}</div>
-                </div>
-                <div className="flex items-end pb-1">
+                <ReadonlyField label="P. unit." value={money(info?.precioFinal ?? 0)} hint={`Base ${money(info?.precioBase ?? 0)}`} />
+                <ReadonlyField label="Subtotal" value={money(info?.subtotal ?? 0)} />
+                <div className="flex justify-end sm:mt-8">
                   {lines.length > 1 && (
-                    <button type="button" onClick={() => removeLine(idx)} className="rounded p-2 text-stone-500 hover:bg-red-50 hover:text-red-600">
+                    <button type="button" onClick={() => removeLine(idx)} aria-label="Quitar línea" title="Quitar línea" className="rounded-lg p-2 text-stone-500 transition hover:bg-red-50 hover:text-red-600">
                       <Trash2 size={16} />
                     </button>
                   )}
@@ -218,14 +215,24 @@ export function SaleForm({ customers, products, isSaving, error, onSubmit, onCan
           })}
         </div>
 
-        <div className="border-t border-stone-200 bg-stone-50 px-4 py-3 text-right text-sm">
-          <div className="text-stone-600">
-            Subtotal: <span className="font-semibold text-stone-800">{money(totals.subtotalBruto)}</span>
-          </div>
-          <div className="text-stone-600">
-            Descuento: <span className="font-semibold text-stone-800">{money(totals.descuentoTotal)}</span>
-          </div>
-          <div className="text-base font-bold text-bio-dark">Total: {money(totals.total)}</div>
+        <div className="form-total">
+          <span className="text-xs text-white/70">
+            {lines.length} {lines.length === 1 ? "producto" : "productos"}
+          </span>
+          <dl className="grid w-full gap-1 text-sm sm:max-w-xs">
+            <div className="flex justify-between text-white/80">
+              <dt>Subtotal</dt>
+              <dd className="font-semibold tabular-nums text-white">{money(totals.subtotalBruto)}</dd>
+            </div>
+            <div className="flex justify-between text-white/80">
+              <dt>Descuento</dt>
+              <dd className="font-semibold tabular-nums text-amber-200">− {money(totals.descuentoTotal)}</dd>
+            </div>
+            <div className="mt-1 flex items-baseline justify-between border-t border-white/20 pt-2">
+              <dt className="text-sm font-medium uppercase tracking-wide text-white/80">Total</dt>
+              <dd className="text-xl font-bold tabular-nums text-bio-light">{money(totals.total)}</dd>
+            </div>
+          </dl>
         </div>
       </div>
 
@@ -233,11 +240,11 @@ export function SaleForm({ customers, products, isSaving, error, onSubmit, onCan
         <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{localError ?? error}</div>
       )}
 
-      <div className="flex justify-end gap-3">
-        <button type="button" onClick={onCancel} className="h-11 rounded-lg border border-stone-300 px-5 text-sm font-semibold text-stone-700 hover:bg-stone-50">
+      <div className="form-actions">
+        <button type="button" onClick={onCancel} className="btn-secondary px-5">
           Cancelar
         </button>
-        <button disabled={isSaving} className="h-11 rounded-lg bg-bio-green px-6 text-sm font-semibold text-white hover:bg-bio-dark disabled:opacity-60">
+        <button disabled={isSaving} className="btn-primary px-6">
           {isSaving ? "Guardando..." : "Confirmar venta"}
         </button>
       </div>

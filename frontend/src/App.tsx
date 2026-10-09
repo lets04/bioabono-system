@@ -3,6 +3,7 @@ import { useViewRoute } from "./hooks/useViewRoute";
 import { BarChart3, FolderTree, Handshake, LayoutDashboard, Package, Receipt, ShoppingCart, Truck, Users, Warehouse, UserCog } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AppLayout } from "./layouts/AppLayout";
+import { Spinner } from "./components/ui/Spinner";
 import { DashboardView } from "./modules/dashboard/DashboardView";
 import { ProductsView } from "./modules/products/ProductsView";
 import { CategoriesView } from "./modules/categories/CategoriesView";
@@ -26,18 +27,18 @@ import { useCustomers } from "./hooks/useCustomers";
 import type { View } from "./types";
 
 const allNavItems = [
-  { id: "dashboard", label: "Inicio", icon: LayoutDashboard },
-  { id: "sales", label: "Ventas", icon: Receipt },
-  { id: "consignations", label: "Consignaciones", icon: Handshake },
-  { id: "purchases", label: "Compras", icon: ShoppingCart },
-  { id: "inventory", label: "Inventario", icon: Warehouse },
-  { id: "products", label: "Productos", icon: Package },
-  { id: "categories", label: "Categorías", icon: FolderTree },
-  { id: "customers", label: "Clientes", icon: Users },
-  { id: "suppliers", label: "Proveedores", icon: Truck },
-  { id: "reports", label: "Reportes", icon: BarChart3, adminOnly: true },
-  { id: "users", label: "Usuarios", icon: UserCog, adminOnly: true },
-] satisfies Array<{ id: View; label: string; icon: LucideIcon; adminOnly?: boolean }>;
+  { id: "dashboard", label: "Inicio", icon: LayoutDashboard, group: "General", description: "Resumen del negocio y alertas de stock" },
+  { id: "sales", label: "Ventas", icon: Receipt, group: "Operaciones", description: "Registra ventas e imprime comprobantes" },
+  { id: "consignations", label: "Consignaciones", icon: Handshake, group: "Operaciones", description: "Entregas a consignatarios, devoluciones y liquidaciones" },
+  { id: "purchases", label: "Compras", icon: ShoppingCart, group: "Operaciones", description: "Ingreso de mercadería de proveedores" },
+  { id: "inventory", label: "Inventario", icon: Warehouse, group: "Operaciones", description: "Stock actual por presentación" },
+  { id: "products", label: "Productos", icon: Package, group: "Catálogo", description: "Productos, presentaciones y precios" },
+  { id: "categories", label: "Categorías", icon: FolderTree, group: "Catálogo", description: "Agrupa los productos del catálogo" },
+  { id: "customers", label: "Clientes", icon: Users, group: "Contactos", description: "Directorio de clientes" },
+  { id: "suppliers", label: "Proveedores", icon: Truck, group: "Contactos", description: "Directorio de proveedores" },
+  { id: "reports", label: "Reportes", icon: BarChart3, group: "Administración", description: "Reportes de compras, ventas, consignaciones e inventario", adminOnly: true },
+  { id: "users", label: "Usuarios", icon: UserCog, group: "Administración", description: "Invita y gestiona el acceso del personal", adminOnly: true },
+] satisfies Array<{ id: View; label: string; icon: LucideIcon; group: string; description: string; adminOnly?: boolean }>;
 
 function currentAuthPage() {
   const path = window.location.pathname;
@@ -53,7 +54,8 @@ export function App() {
 
   if (!isReady) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-bio-cream text-sm text-stone-500">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-bio-cream text-sm text-stone-500">
+        <Spinner size={28} className="text-bio-green" />
         Cargando...
       </div>
     );
@@ -64,10 +66,10 @@ export function App() {
   if (page === "reset") return <ResetPasswordView />;
   if (!user) return <LoginView />;
 
-  return <AuthenticatedApp isAdmin={user.rol === "ADMIN"} />;
+  return <AuthenticatedApp isAdmin={user.rol === "ADMIN"} userName={user.nombre} />;
 }
 
-function AuthenticatedApp({ isAdmin }: { isAdmin: boolean }) {
+function AuthenticatedApp({ isAdmin, userName }: { isAdmin: boolean; userName: string }) {
   const [activeView, navigate] = useViewRoute(
     (view) => !allNavItems.find((item) => item.id === view)?.adminOnly || isAdmin,
   );
@@ -76,7 +78,7 @@ function AuthenticatedApp({ isAdmin }: { isAdmin: boolean }) {
   const [customerSearch, setCustomerSearch] = useState("");
 
   const navItems = useMemo(
-    () => allNavItems.filter((item) => !item.adminOnly || isAdmin).map(({ id, label, icon }) => ({ id, label, icon })),
+    () => allNavItems.filter((item) => !item.adminOnly || isAdmin).map(({ id, label, icon, group }) => ({ id, label, icon, group })),
     [isAdmin],
   );
 
@@ -90,20 +92,24 @@ function AuthenticatedApp({ isAdmin }: { isAdmin: boolean }) {
   const products = allProductsQuery.data ?? [];
   const activeProducts = products.filter((p) => p.activo);
   const lowStockPresentaciones = products.flatMap((p) => p.presentaciones.filter((pres) => p.activo && pres.activo && pres.stockActual <= pres.stockMinimo));
-  const title = navItems.find((item) => item.id === activeView)?.label ?? "";
+  const current = allNavItems.find((item) => item.id === activeView);
 
   return (
     <AppLayout
       navItems={navItems}
       activeView={activeView}
       onNavigate={navigate}
-      title={title}
+      title={current?.label ?? ""}
+      description={current?.description}
     >
       {activeView === "dashboard" && (
         <DashboardView
           products={products}
           activeProducts={activeProducts.length}
           lowStock={lowStockPresentaciones.length}
+          isLoading={allProductsQuery.isLoading}
+          userName={userName}
+          availableViews={navItems.map((item) => item.id)}
           onNavigate={navigate}
         />
       )}

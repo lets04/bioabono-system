@@ -4,11 +4,12 @@ import {
   Eye,
   Plus,
   Printer,
-  Search,
   ClipboardCheck,
 } from "lucide-react";
 
+import { useFeedback } from "../../components/ui/Feedback";
 import { Modal } from "../../components/ui/Modal";
+import { SearchInput } from "../../components/ui/SearchInput";
 import { IconButton } from "../../components/ui/IconButton";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { DataState } from "../../components/ui/DataState";
@@ -28,6 +29,7 @@ import type { ConsignationDetail } from "../../types";
 
 export function ConsignationsView() {
   const queryClient = useQueryClient();
+  const { notify } = useFeedback();
 
   const [search, setSearch] = useState("");
   const [estado, setEstado] = useState("");
@@ -73,6 +75,7 @@ export function ConsignationsView() {
         queryKey: ["products"],
       });
 
+      notify(`Consignación ${consignation.numero} registrada`);
       setIsCreating(false);
       setSelected(consignation);
       setPrintDoc({ consignation, variant: "entrega" });
@@ -109,6 +112,7 @@ export function ConsignationsView() {
         queryKey: ["sales"],
       });
 
+      notify(`Consignación ${consignation.numero} liquidada`);
       setSelected(consignation);
       setPrintDoc({ consignation, variant: "liquidacion" });
     },
@@ -132,25 +136,17 @@ export function ConsignationsView() {
 
           {/* BUSCAR */}
 
-          <div className="flex h-11 w-full items-center gap-2 rounded-lg border border-stone-200 bg-white px-3">
-            <Search
-              size={16}
-              className="text-stone-400"
-            />
-
-            <input
-              value={search}
-              onChange={(e) =>
-                setSearch(e.target.value)
-              }
-              placeholder="Buscar por número o cliente"
-              className="w-full bg-transparent text-sm outline-none"
-            />
-          </div>
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Buscar por número o cliente"
+            className="sm:max-w-none"
+          />
 
           {/* ESTADO */}
 
           <select
+            aria-label="Filtrar por estado"
             value={estado}
             onChange={(e) =>
               setEstado(e.target.value)
@@ -173,7 +169,7 @@ export function ConsignationsView() {
 
         <button
           onClick={() => setIsCreating(true)}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-bio-green px-4 text-sm font-semibold text-white hover:bg-bio-dark"
+          className="btn-primary"
         >
           <Plus size={17} />
 
@@ -198,11 +194,11 @@ export function ConsignationsView() {
 
       {!consignationsQuery.isLoading &&
         !consignationsQuery.isError && (
-          <div className="mt-4 overflow-hidden rounded-lg border border-stone-200 bg-white">
+          <div className="table-card">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[820px] text-left text-sm">
 
-                <thead className="bg-stone-50 text-xs uppercase text-stone-500">
+                <thead className="table-head">
                   <tr>
                     <th className="px-4 py-3">
                       N.º consignación
@@ -230,7 +226,7 @@ export function ConsignationsView() {
                   </tr>
                 </thead>
 
-                <tbody className="divide-y divide-stone-100">
+                <tbody className="table-body divide-y divide-stone-100">
                   {(consignationsQuery.data ?? []).map(
                     (consignation) => (
                       <tr

@@ -4,6 +4,7 @@ import { MutationCache, QueryClient, QueryClientProvider } from "@tanstack/react
 import { ApiError } from "./api/client";
 import { App } from "./App";
 import { AuthProvider } from "./auth/AuthContext";
+import { FeedbackProvider } from "./components/ui/Feedback";
 import "./styles.css";
 
 const queryClient: QueryClient = new QueryClient({
@@ -24,9 +25,11 @@ const queryClient: QueryClient = new QueryClient({
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      <FeedbackProvider>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </FeedbackProvider>
     </QueryClientProvider>
   </React.StrictMode>
 );

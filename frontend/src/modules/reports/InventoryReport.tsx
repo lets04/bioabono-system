@@ -7,6 +7,7 @@ import { DataState } from "../../components/ui/DataState";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { reportsApi } from "../../api/reports";
 import { ReportPrintPreview } from "../../components/print/ReportPrintPreview";
+import { CategorySelect } from "../../components/ui/CategorySelect";
 
 export function InventoryReport() {
   const [categoriaId, setCategoriaId] = useState("");
@@ -44,10 +45,7 @@ export function InventoryReport() {
       <div className="grid gap-3 rounded-lg border border-stone-200 bg-stone-50 p-4 sm:grid-cols-4">
         <div className="grid gap-1">
           <label className="text-xs font-semibold text-stone-600">Categoría</label>
-          <select value={categoriaId} onChange={(event) => setCategoriaId(event.target.value)} className="input bg-white">
-            <option value="">Todas</option>
-            {(categoriesQuery.data ?? []).map((category) => <option key={category.id} value={category.id}>{category.nombre}</option>)}
-          </select>
+          <CategorySelect categories={categoriesQuery.data ?? []} value={categoriaId} onChange={setCategoriaId} emptyLabel="Todas" />
         </div>
         <div className="grid gap-1">
           <label className="text-xs font-semibold text-stone-600">Estado stock</label>
@@ -95,7 +93,7 @@ export function InventoryReport() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[900px] text-left text-sm">
                 <thead className="bg-stone-50 text-xs text-stone-500"><tr><th className="px-4 py-2">Código</th><th className="px-4 py-2">Producto</th><th className="px-4 py-2">Cantidad</th><th className="px-4 py-2 text-right">Stock actual</th><th className="px-4 py-2 text-right">Mínimo</th><th className="px-4 py-2">Estado</th><th className="px-4 py-2">Categoría</th></tr></thead>
-                <tbody className="divide-y divide-stone-100">
+                <tbody className="table-body divide-y divide-stone-100">
                   {reportQuery.data.rows.map((row) => {
                     const rowStatus = row.stockActual === 0 ? "Sin stock" : row.stockActual <= row.stockMinimo ? "Stock bajo" : "Normal";
                     return <tr key={row.id}><td className="px-4 py-2 font-mono text-xs font-semibold text-bio-dark">{row.codigo}</td><td className="px-4 py-2">{row.productoNombre}</td><td className="px-4 py-2">{row.cantidad} {row.unidadMedida}</td><td className="px-4 py-2 text-right font-semibold">{row.stockActual}</td><td className="px-4 py-2 text-right">{row.stockMinimo}</td><td className="px-4 py-2">{rowStatus}</td><td className="px-4 py-2 text-xs text-stone-500">{row.categoriaNombre ?? "—"}</td></tr>;
