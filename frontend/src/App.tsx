@@ -28,13 +28,13 @@ import type { View } from "./types";
 const allNavItems = [
   { id: "dashboard", label: "Inicio", icon: LayoutDashboard },
   { id: "sales", label: "Ventas", icon: Receipt },
+  { id: "consignations", label: "Consignaciones", icon: Handshake },
   { id: "purchases", label: "Compras", icon: ShoppingCart },
   { id: "inventory", label: "Inventario", icon: Warehouse },
   { id: "products", label: "Productos", icon: Package },
   { id: "categories", label: "Categorías", icon: FolderTree },
   { id: "customers", label: "Clientes", icon: Users },
   { id: "suppliers", label: "Proveedores", icon: Truck },
-  { id: "consignations", label: "Consignaciones", icon: Handshake },
   { id: "reports", label: "Reportes", icon: BarChart3, adminOnly: true },
   { id: "users", label: "Usuarios", icon: UserCog, adminOnly: true },
 ] satisfies Array<{ id: View; label: string; icon: LucideIcon; adminOnly?: boolean }>;
@@ -68,7 +68,7 @@ export function App() {
 }
 
 function AuthenticatedApp({ isAdmin }: { isAdmin: boolean }) {
-  const [activeView, setActiveView] = useViewRoute(
+  const [activeView, navigate] = useViewRoute(
     (view) => !allNavItems.find((item) => item.id === view)?.adminOnly || isAdmin,
   );
   const [productSearch, setProductSearch] = useState("");
@@ -96,7 +96,7 @@ function AuthenticatedApp({ isAdmin }: { isAdmin: boolean }) {
     <AppLayout
       navItems={navItems}
       activeView={activeView}
-      onNavigate={setActiveView}
+      onNavigate={navigate}
       title={title}
     >
       {activeView === "dashboard" && (
@@ -104,7 +104,7 @@ function AuthenticatedApp({ isAdmin }: { isAdmin: boolean }) {
           products={products}
           activeProducts={activeProducts.length}
           lowStock={lowStockPresentaciones.length}
-          onNavigate={setActiveView}
+          onNavigate={navigate}
         />
       )}
 

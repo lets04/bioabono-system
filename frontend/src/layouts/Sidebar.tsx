@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import type { View } from "../types";
-import logoBioabono from "../assets/bioabonosinFondo.png";
+import { brandMark as logoBioabono } from "../brand";
 
 type NavItem = {
   id: View;
@@ -27,13 +27,18 @@ export function Sidebar({
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col bg-bio-dark text-white md:flex print:hidden">
 
         {/* Cabecera blanca con logo */}
-        <div className="flex h-24 shrink-0 items-center justify-center bg-bio-dark px-6">
+        <button
+          type="button"
+          onClick={() => onNavigate("dashboard")}
+          className="flex h-24 shrink-0 items-center justify-center bg-bio-dark px-6"
+          aria-label="Ir a Inicio"
+        >
           <img
             src={logoBioabono}
             alt="BIOABONO"
             className="max-h-[92px] w-auto object-contain"
           />
-        </div>
+        </button>
 
         {/* Menú */}
         <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-4 py-5">
@@ -98,11 +103,20 @@ export function MobileSidebar({
         <div className="relative flex h-28 shrink-0 items-center justify-center bg-bio-dark px-4">
 
           {/* Logo */}
-          <img
-            src={logoBioabono}
-            alt="BIOABONO"
-            className="max-h-[100px] max-w-[190px] w-auto object-contain"
-          />
+          <button
+            type="button"
+            onClick={() => {
+              onNavigate("dashboard");
+              onClose();
+            }}
+            aria-label="Ir a Inicio"
+          >
+            <img
+              src={logoBioabono}
+              alt="BIOABONO"
+              className="max-h-[100px] max-w-[190px] w-auto object-contain"
+            />
+          </button>
 
           {/* Botón cerrar */}
           <button

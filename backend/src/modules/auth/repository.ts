@@ -1,6 +1,13 @@
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
-import { auditLogs, users } from "../../db/schema/index.js";
+import {
+  auditLogs,
+  consignations,
+  inventoryMovements,
+  purchases,
+  sales,
+  users,
+} from "../../db/schema/index.js";
 import type { AuthUser, UserRole, UserStatus } from "./types.js";
 
 const userSelect = {
@@ -190,6 +197,24 @@ export async function setUserStatus(id: number, estado: Exclude<UserStatus, "PEN
     .where(eq(users.id, id))
     .returning();
   return row;
+}
+
+export async function userHasOperationalRecords(id: number) {
+  const records = await Promise.all([
+    db.select({ id: purchases.id }).from(purchases).where(eq(purchases.usuarioId, id)).limit(1),
+    db.select({ id: sales.id }).from(sales).where(eq(sales.usuarioId, id)).limit(1),
+    db.select({ id: consignations.id }).from(consignations).where(eq(consignations.usuarioId, id)).limit(1),
+    db.select({ id: inventoryMovements.id }).from(inventoryMovements).where(eq(inventoryMovements.usuarioId, id)).limit(1),
+  ]);
+  return records.some((rows) => rows.length > 0);
+}
+
+export async function deleteUser(id: number) {
+  const [deleted] = await db
+    .delete(users)
+    .where(eq(users.id, id))
+    .returning({ id: users.id, nombre: users.nombre, username: users.username });
+  return deleted ?? null;
 }
 
 export async function insertAuditLog(input: {

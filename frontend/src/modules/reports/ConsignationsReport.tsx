@@ -5,12 +5,14 @@ import { useConsignationsReport } from "../../hooks/useReports";
 import { DataState } from "../../components/ui/DataState";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { money } from "../../utils/format";
+import { ReportPrintPreview } from "../../components/print/ReportPrintPreview";
 
 export function ConsignationsReport() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [estado, setEstado] = useState("");
   const [applied, setApplied] = useState<ReportFilters>({});
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
 
   const reportQuery = useConsignationsReport(applied);
 
@@ -80,8 +82,8 @@ export function ConsignationsReport() {
           </div>
 
           <div className="flex justify-end print:hidden">
-            <button onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-lg border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700">
-              <Printer size={16} /> Imprimir reporte
+            <button type="button" onClick={() => setShowPrintPreview(true)} className="inline-flex items-center gap-2 rounded-lg border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700">
+              <Printer size={16} /> Vista previa
             </button>
           </div>
 
@@ -131,6 +133,12 @@ export function ConsignationsReport() {
             </div>
             {reportQuery.data.rows.length === 0 && <EmptyState text="No hay consignaciones para el filtro aplicado." />}
           </div>
+          {showPrintPreview ? (
+            <ReportPrintPreview title="REPORTE DE CONSIGNACIONES" criteria={<><span className="font-semibold text-stone-700">Criterios de consulta:</span> Período: {from || "Todos"} al {to || "hoy"}{estado ? ` — Estado: ${estado === "PENDIENTE" ? "Pendientes" : "Liquidadas"}` : ""}</>} onClose={() => setShowPrintPreview(false)}>
+              <section className="mt-6"><h2 className="border-b border-stone-300 pb-2 text-sm font-bold uppercase tracking-wide text-stone-800">Resumen</h2><table className="mt-3 w-full border-collapse text-sm"><tbody><tr className="border-b border-stone-200"><td className="px-3 py-2">Consignaciones</td><td className="px-3 py-2 text-right font-semibold">{reportQuery.data.summary.cantidadConsignaciones}</td></tr><tr className="border-b border-stone-200"><td className="px-3 py-2">Pendientes</td><td className="px-3 py-2 text-right font-semibold">{reportQuery.data.summary.pendientes}</td></tr><tr className="border-b border-stone-200"><td className="px-3 py-2">Liquidadas</td><td className="px-3 py-2 text-right font-semibold">{reportQuery.data.summary.liquidadas}</td></tr><tr><td className="px-3 py-2">Total vendido</td><td className="px-3 py-2 text-right font-semibold">{money(reportQuery.data.summary.totalVendido)}</td></tr></tbody></table></section>
+              <section className="mt-7"><h2 className="border-b border-stone-300 pb-2 text-sm font-bold uppercase tracking-wide text-stone-800">Detalle de consignaciones</h2><div className="mt-3 overflow-hidden border border-stone-300"><table className="w-full border-collapse text-[10px]"><thead><tr className="border-b-2 border-stone-400 bg-stone-100"><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Fecha</th><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">N.º</th><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Cliente</th><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Código</th><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Producto</th><th className="px-2 py-2 text-right font-bold uppercase text-stone-700">Ent.</th><th className="px-2 py-2 text-right font-bold uppercase text-stone-700">Vend.</th><th className="px-2 py-2 text-right font-bold uppercase text-stone-700">Dev.</th><th className="px-2 py-2 text-right font-bold uppercase text-stone-700">P. cons.</th><th className="px-2 py-2 text-right font-bold uppercase text-stone-700">Importe</th><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Estado</th></tr></thead><tbody>{reportQuery.data.rows.map((row, index) => <tr key={`${row.id}-${row.presentacionId}-${index}`} className="border-b border-stone-200"><td className="px-2 py-2">{new Date(row.fechaEntrega).toLocaleDateString("es-BO")}</td><td className="px-2 py-2 font-mono">{row.numero}</td><td className="px-2 py-2">{row.clienteNombre}</td><td className="px-2 py-2 font-mono">{row.codigo}</td><td className="px-2 py-2">{row.productoNombre} {row.cantidadPresentacion} {row.unidadMedida}</td><td className="px-2 py-2 text-right">{row.cantidadEntregada}</td><td className="px-2 py-2 text-right">{row.cantidadVendida}</td><td className="px-2 py-2 text-right">{row.cantidadDevuelta}</td><td className="px-2 py-2 text-right">{money(row.precioConsignacion)}</td><td className="px-2 py-2 text-right font-semibold">{money(row.importeVendido)}</td><td className="px-2 py-2">{row.estado === "PENDIENTE" ? "Pendiente" : "Liquidada"}</td></tr>)}</tbody></table></div>{reportQuery.data.rows.length === 0 ? <p className="border border-t-0 border-stone-300 p-8 text-center text-sm text-stone-500">No hay consignaciones para el filtro aplicado.</p> : null}</section>
+            </ReportPrintPreview>
+          ) : null}
         </>
       )}
 

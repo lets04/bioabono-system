@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Eye,
   Plus,
+  Printer,
   Search,
   ClipboardCheck,
 } from "lucide-react";
@@ -21,6 +22,7 @@ import { useProducts } from "../../hooks/useProducts";
 
 import { ConsignationForm } from "./ConsignationForm";
 import { ConsignationDetailView } from "./ConsignationDetail";
+import { ConsignationPrint } from "./ConsignationPrint";
 
 import type { ConsignationDetail } from "../../types";
 
@@ -34,6 +36,10 @@ export function ConsignationsView() {
     useState<ConsignationDetail | null>(null);
 
   const [isCreating, setIsCreating] = useState(false);
+  const [printDoc, setPrintDoc] = useState<{
+    consignation: ConsignationDetail;
+    variant: "entrega" | "liquidacion";
+  } | null>(null);
 
   const consignationsQuery = useConsignations(
     search,
@@ -68,10 +74,8 @@ export function ConsignationsView() {
       });
 
       setIsCreating(false);
-
-      // Abrir automáticamente el detalle
-      // después de crear la consignación.
       setSelected(consignation);
+      setPrintDoc({ consignation, variant: "entrega" });
     },
   });
 
@@ -105,9 +109,8 @@ export function ConsignationsView() {
         queryKey: ["sales"],
       });
 
-      // Mantener abierto el detalle mostrando
-      // la consignación ya liquidada.
       setSelected(consignation);
+      setPrintDoc({ consignation, variant: "liquidacion" });
     },
   });
 
@@ -283,35 +286,32 @@ export function ConsignationsView() {
 
                         <td className="px-4 py-3">
                           <div className="flex justify-end gap-2">
-
-                            {consignation.estado ===
-                            "PENDIENTE" ? (
+                            <IconButton
+                              label="Imprimir"
+                              icon={Printer}
+                              onClick={async () => {
+                                const detail = await consignationsApi.get(consignation.id);
+                                setPrintDoc({
+                                  consignation: detail,
+                                  variant: consignation.estado === "LIQUIDADA" ? "liquidacion" : "entrega",
+                                });
+                              }}
+                            />
+                            {consignation.estado === "PENDIENTE" ? (
                               <button
-                                onClick={() =>
-                                  handleSelect(
-                                    consignation.id,
-                                  )
-                                }
+                                onClick={() => handleSelect(consignation.id)}
                                 className="inline-flex items-center gap-2 rounded-lg bg-bio-green px-3 py-2 text-xs font-semibold text-white transition hover:bg-bio-dark"
                               >
-                                <ClipboardCheck
-                                  size={15}
-                                />
-
+                                <ClipboardCheck size={15} />
                                 Liquidar
                               </button>
                             ) : (
                               <IconButton
                                 label="Ver detalle"
-                                onClick={() =>
-                                  handleSelect(
-                                    consignation.id,
-                                  )
-                                }
+                                onClick={() => handleSelect(consignation.id)}
                                 icon={Eye}
                               />
                             )}
-
                           </div>
                         </td>
                       </tr>
@@ -373,6 +373,12 @@ export function ConsignationsView() {
             error={
               liquidateMutation.error?.message
             }
+            onPrintEntrega={() => setPrintDoc({ consignation: selected, variant: "entrega" })}
+            onPrintLiquidacion={
+              selected.estado === "LIQUIDADA"
+                ? () => setPrintDoc({ consignation: selected, variant: "liquidacion" })
+                : undefined
+            }
             onLiquidate={(payload) => {
               // Si ya está liquidada no hacemos nada.
               if (
@@ -388,6 +394,14 @@ export function ConsignationsView() {
             }}
           />
         </Modal>
+      )}
+
+      {printDoc && (
+        <ConsignationPrint
+          consignation={printDoc.consignation}
+          variant={printDoc.variant}
+          onClose={() => setPrintDoc(null)}
+        />
       )}
     </div>
   );

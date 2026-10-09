@@ -7,9 +7,9 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { money } from "../../utils/format";
 import { reportsApi } from "../../api/reports";
 import type { ReportFilters } from "../../types";
+import { ReportPrintPreview } from "../../components/print/ReportPrintPreview";
 
 export function PurchaseReport() {
-  const [filters, setFilters] = useState<ReportFilters>({});
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [proveedorId, setProveedorId] = useState("");
@@ -19,6 +19,7 @@ export function PurchaseReport() {
   const reportQuery = usePurchasesReport(applied);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
 
   const apply = () => {
     setApplied({
@@ -35,7 +36,6 @@ export function PurchaseReport() {
     setApplied({});
   };
 
-  const handlePrint = () => window.print();
   const handleExport = async () => {
     setExporting(true);
     setExportError(null);
@@ -132,8 +132,8 @@ export function PurchaseReport() {
               >
                 <FileSpreadsheet size={16} /> {exporting ? "Exportando..." : "Exportar a Excel"}
               </button>
-              <button onClick={handlePrint} className="inline-flex items-center gap-2 rounded-lg border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700">
-                <Printer size={16} /> Imprimir reporte
+              <button type="button" onClick={() => setShowPrintPreview(true)} className="inline-flex items-center gap-2 rounded-lg border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700">
+                <Printer size={16} /> Vista previa
               </button>
             </div>
           </div>
@@ -176,17 +176,16 @@ export function PurchaseReport() {
             {reportQuery.data.rows.length === 0 && <EmptyState text="No hay compras para el filtro aplicado." />}
           </div>
 
-          {/* Print header */}
-          <div className="hidden print:block">
-            <style>{`@media print { body * { visibility: hidden; } #print-purchases, #print-purchases * { visibility: visible; } #print-purchases { position: absolute; left:0; top:0; width:100%; } }`}</style>
-          </div>
-          <div id="print-purchases" className="hidden print:block p-6">
-            <h1 className="text-xl font-bold text-bio-dark">BIOABONO — Reporte de Compras</h1>
-            <p className="text-xs text-stone-500">
-              Período: {from || "—"} al {to || "—"} {proveedorId ? `• Proveedor: ${suppliersQuery.data?.find((s) => String(s.id) === proveedorId)?.nombre ?? ""}` : ""}
-            </p>
-            <p className="text-sm font-semibold">Total: {money(reportQuery.data.summary.totalCompras)} — {reportQuery.data.summary.cantidadCompras} compras</p>
-          </div>
+          {showPrintPreview ? (
+            <ReportPrintPreview
+              title="REPORTE DE COMPRAS"
+              criteria={<><span className="font-semibold text-stone-700">Criterios de consulta:</span> Período: {from || "Todos"} al {to || "hoy"}{proveedorId ? ` — Proveedor: ${suppliersQuery.data?.find((supplier) => String(supplier.id) === proveedorId)?.nombre ?? ""}` : ""}</>}
+              onClose={() => setShowPrintPreview(false)}
+            >
+              <section className="mt-6"><h2 className="border-b border-stone-300 pb-2 text-sm font-bold uppercase tracking-wide text-stone-800">Resumen</h2><table className="mt-3 w-full border-collapse text-sm"><tbody><tr className="border-b border-stone-200"><td className="px-3 py-2">Cantidad de compras</td><td className="px-3 py-2 text-right font-semibold">{reportQuery.data.summary.cantidadCompras}</td></tr><tr className="border-b border-stone-200"><td className="px-3 py-2">Total comprado</td><td className="px-3 py-2 text-right font-semibold">{money(reportQuery.data.summary.totalCompras)}</td></tr><tr><td className="px-3 py-2">Proveedores en período</td><td className="px-3 py-2 text-right font-semibold">{reportQuery.data.summary.porProveedor.length}</td></tr></tbody></table></section>
+              <section className="mt-7"><h2 className="border-b border-stone-300 pb-2 text-sm font-bold uppercase tracking-wide text-stone-800">Detalle de compras</h2><div className="mt-3 overflow-hidden border border-stone-300"><table className="w-full border-collapse text-sm"><thead><tr className="border-b-2 border-stone-400 bg-stone-100"><th className="px-3 py-2 text-left text-xs font-bold uppercase text-stone-700">Fecha</th><th className="px-3 py-2 text-left text-xs font-bold uppercase text-stone-700">N.º</th><th className="px-3 py-2 text-left text-xs font-bold uppercase text-stone-700">Proveedor</th><th className="px-3 py-2 text-left text-xs font-bold uppercase text-stone-700">Código</th><th className="px-3 py-2 text-left text-xs font-bold uppercase text-stone-700">Producto</th><th className="px-3 py-2 text-right text-xs font-bold uppercase text-stone-700">Cant.</th><th className="px-3 py-2 text-right text-xs font-bold uppercase text-stone-700">P. unit.</th><th className="px-3 py-2 text-right text-xs font-bold uppercase text-stone-700">Subtotal</th></tr></thead><tbody>{reportQuery.data.rows.map((row, index) => <tr key={`${row.id}-${row.presentacionId}-${index}`} className="border-b border-stone-200"><td className="px-3 py-2 text-xs">{new Date(row.fecha).toLocaleDateString("es-BO")}</td><td className="px-3 py-2 font-mono text-xs">{row.numero}</td><td className="px-3 py-2">{row.proveedorNombre}</td><td className="px-3 py-2 font-mono text-xs">{row.codigo}</td><td className="px-3 py-2">{row.productoNombre} {row.cantidadPresentacion} {row.unidadMedida}</td><td className="px-3 py-2 text-right">{row.cantidad}</td><td className="px-3 py-2 text-right">{money(row.precioUnitario)}</td><td className="px-3 py-2 text-right font-semibold">{money(row.detalleSubtotal)}</td></tr>)}</tbody></table></div>{reportQuery.data.rows.length === 0 ? <p className="border border-t-0 border-stone-300 p-8 text-center text-sm text-stone-500">No hay compras para el filtro aplicado.</p> : null}</section>
+            </ReportPrintPreview>
+          ) : null}
         </>
       )}
     </div>
