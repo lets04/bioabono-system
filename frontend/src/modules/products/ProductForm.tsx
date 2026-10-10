@@ -1,6 +1,8 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Field } from "../../components/ui/Field";
+import { FormError } from "../../components/ui/FormError";
+import { CategorySelect } from "../../components/ui/CategorySelect";
 import { money } from "../../utils/format";
 import { derivedPrices, previewCodigo, productToForm, productUnits } from "../../utils/product";
 import type { Category, Product, ProductFormState } from "../../types";
@@ -70,14 +72,12 @@ export function ProductForm({ product, categories, isSaving, error, onSubmit }: 
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Categoría">
-          <select value={form.categoriaId} onChange={(e) => setBase("categoriaId", e.target.value)} className="input">
-            <option value="">Sin categoría</option>
-            {categories.filter((c) => c.activo).map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nombre}
-              </option>
-            ))}
-          </select>
+          <CategorySelect
+            categories={categories.filter((c) => c.activo || String(c.id) === form.categoriaId)}
+            value={form.categoriaId}
+            onChange={(v) => setBase("categoriaId", v)}
+            emptyLabel="Sin categoría"
+          />
         </Field>
         <label className="flex items-center gap-2 self-end rounded-lg border border-stone-200 bg-stone-50 px-3 py-3 text-sm font-medium text-stone-700">
           <input checked={form.activo} onChange={(e) => setBase("activo", e.target.checked)} type="checkbox" className="h-4 w-4 accent-bio-green" />
@@ -107,7 +107,7 @@ export function ProductForm({ product, categories, isSaving, error, onSubmit }: 
                   <div className="flex items-center gap-2">
                     <span className="rounded bg-white px-2 py-1 text-xs font-mono font-semibold text-bio-dark border border-stone-200">{codigoPreview}</span>
                     {form.presentaciones.length > 1 && (
-                      <button type="button" onClick={() => removePres(idx)} className="rounded p-1 text-stone-500 hover:bg-red-50 hover:text-red-600">
+                      <button type="button" onClick={() => removePres(idx)} aria-label="Quitar línea" title="Quitar línea" className="rounded p-1 text-stone-500 hover:bg-red-50 hover:text-red-600">
                         <Trash2 size={16} />
                       </button>
                     )}
@@ -168,9 +168,9 @@ export function ProductForm({ product, categories, isSaving, error, onSubmit }: 
         </p>
       </div>
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      <FormError message={error} />
 
-      <button disabled={isSaving} className="h-11 rounded-lg bg-bio-green px-4 text-sm font-semibold text-white hover:bg-bio-dark disabled:opacity-60">
+      <button disabled={isSaving} className="btn-primary">
         {isSaving ? "Guardando..." : "Guardar producto"}
       </button>
     </form>

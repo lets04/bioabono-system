@@ -1,9 +1,5 @@
 import { z } from "zod";
-
-const numericString = z
-  .union([z.string(), z.number()])
-  .transform((v) => String(v).trim())
-  .refine((v) => v !== "" && Number.isFinite(Number(v)), "Debe ser un número válido");
+import { numericString } from "../../lib/validation.js";
 
 export const purchaseCreateSchema = z.object({
   proveedorId: z.number().int().positive("El proveedor es obligatorio"),

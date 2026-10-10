@@ -1,170 +1,82 @@
-import { money } from "../../utils/format";
+import { money, priceTypeLabel } from "../../utils/format";
+import { PrintPreview } from "../../components/print/PrintPreview";
+import { PrintFooter, PrintHeader } from "../../components/print/PrintHeader";
 import type { SaleDetail } from "../../types";
-import logoBioabono from "../../../dist/assets/bioabonosinFondo.png";
 
-export function SalePrint({
-  sale,
-  onClose,
-}: {
-  sale: SaleDetail;
-  onClose: () => void;
-}) {
-  const date = new Date(sale.fecha).toLocaleDateString("es-BO", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-
+export function SalePrint({ sale, onClose }: { sale: SaleDetail; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-white p-6 print:p-0">
-      <style>{`@media print { body * { visibility: hidden; } #print-area, #print-area * { visibility: visible; } #print-area { position: absolute; left: 0; top: 0; width: 100%; } .no-print { display: none; } }`}</style>
-      <div id="print-area" className="mx-auto max-w-3xl bg-white">
-        <div className="no-print mb-4 flex justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700"
-          >
-            Cerrar
-          </button>
-          <button
-            onClick={() => window.print()}
-            className="rounded-lg bg-bio-green px-4 py-2 text-sm font-semibold text-white hover:bg-bio-dark"
-          >
-            Imprimir
-          </button>
-        </div>
+    <PrintPreview title="Comprobante de venta" printAreaId="sale-print-area" onClose={onClose}>
+      <PrintHeader
+        title="COMPROBANTE DE VENTA"
+        subtitle="Documento interno — no válido como factura fiscal"
+        meta={
+          <>
+            <span className="font-semibold text-stone-700">N.º:</span> {sale.numero}
+            {" — "}
+            <span className="font-semibold text-stone-700">Fecha:</span>{" "}
+            {new Date(sale.fecha).toLocaleDateString("es-BO", { dateStyle: "long" })}
+            {" — "}
+            <span className="font-semibold text-stone-700">Estado:</span> {sale.estado}
+          </>
+        }
+      />
 
-        <div className="border-b-2 border-bio-dark pb-4">
-          <div className="flex items-start justify-between">
-            <div>
-              <div>
-                <img
-                  src={logoBioabono}
-                  alt="BIOABONO"
-                  className="h-20 w-auto object-contain object-left"
-                />
-
-                <div className="mt-1 text-sm text-stone-500">
-                  Gestión comercial — 100% Orgánico y Ecológico
-                </div>
-              </div>
-              <div className="mt-2 text-base font-semibold text-bio-dark">
-                COMPROBANTE DE VENTA
-              </div>
-              <div className="text-xs text-stone-500">
-                Documento interno — no válido como factura fiscal
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="font-mono text-lg font-bold text-bio-dark">
-                {sale.numero}
-              </div>
-              <div className="text-xs capitalize text-stone-500">{date}</div>
-              <div className="mt-1 inline-flex rounded-full bg-stone-100 px-2.5 py-1 text-xs font-semibold text-stone-700">
-                {sale.estado}
-              </div>
-            </div>
+      <div className="mt-6">
+        <h2 className="border-b border-stone-300 pb-2 text-sm font-bold uppercase tracking-wide text-stone-800">Cliente</h2>
+        <div className="mt-3 text-sm text-stone-700">
+          <div className="font-semibold">{sale.clienteNombre ?? "Cliente mostrador"}</div>
+          <div className="text-xs text-stone-500">
+            {[sale.clienteNitCi && `NIT/CI: ${sale.clienteNitCi}`, sale.clienteTelefono && `Tel: ${sale.clienteTelefono}`, sale.clienteEmail]
+              .filter(Boolean)
+              .join(" • ")}
           </div>
+          {sale.clienteDireccion ? <div className="text-xs text-stone-500">{sale.clienteDireccion}</div> : null}
+          {sale.observacion ? <div className="mt-2 text-xs">Observación: {sale.observacion}</div> : null}
         </div>
+      </div>
 
-        <div className="mt-6 grid gap-4 rounded-lg border border-stone-200 bg-stone-50 p-4 text-sm">
-          <div>
-            <div className="text-xs uppercase tracking-wide text-stone-500">
-              Cliente
-            </div>
-            <div className="font-semibold text-stone-800">
-              {sale.clienteNombre ?? "Cliente mostrador"}
-            </div>
-            <div className="text-xs text-stone-500">
-              {[
-                sale.clienteNitCi && `NIT/CI: ${sale.clienteNitCi}`,
-                sale.clienteTelefono && `Tel: ${sale.clienteTelefono}`,
-                sale.clienteEmail,
-              ]
-                .filter(Boolean)
-                .join(" • ")}
-            </div>
-            {sale.clienteDireccion && (
-              <div className="text-xs text-stone-500">
-                {sale.clienteDireccion}
-              </div>
-            )}
-          </div>
-          {sale.observacion && (
-            <div>
-              <div className="text-xs uppercase tracking-wide text-stone-500">
-                Observación
-              </div>
-              <div className="text-sm text-stone-700">{sale.observacion}</div>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-6 overflow-hidden rounded-lg border border-stone-300">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-stone-100 text-xs uppercase text-stone-600">
-              <tr>
-                <th className="px-3 py-2">Código</th>
-                <th className="px-3 py-2">Producto</th>
-                <th className="px-3 py-2">Presentación</th>
-                <th className="px-3 py-2 text-right">Cant.</th>
-                <th className="px-3 py-2">Tipo</th>
-                <th className="px-3 py-2 text-right">P. unit.</th>
-                <th className="px-3 py-2 text-right">Desc.</th>
-                <th className="px-3 py-2 text-right">Subtotal</th>
+      <div className="mt-7">
+        <h2 className="border-b border-stone-300 pb-2 text-sm font-bold uppercase tracking-wide text-stone-800">Detalle de la venta</h2>
+        <div className="mt-3 overflow-hidden border border-stone-300">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b-2 border-stone-400 bg-stone-100">
+                <th className="px-3 py-2 text-left text-xs font-bold uppercase tracking-wide text-stone-700">Código</th>
+                <th className="px-3 py-2 text-left text-xs font-bold uppercase tracking-wide text-stone-700">Producto</th>
+                <th className="px-3 py-2 text-left text-xs font-bold uppercase tracking-wide text-stone-700">Presentación</th>
+                <th className="px-3 py-2 text-right text-xs font-bold uppercase tracking-wide text-stone-700">Cant.</th>
+                <th className="px-3 py-2 text-left text-xs font-bold uppercase tracking-wide text-stone-700">Tipo</th>
+                <th className="px-3 py-2 text-right text-xs font-bold uppercase tracking-wide text-stone-700">P. unit.</th>
+                <th className="px-3 py-2 text-right text-xs font-bold uppercase tracking-wide text-stone-700">Desc.</th>
+                <th className="px-3 py-2 text-right text-xs font-bold uppercase tracking-wide text-stone-700">Subtotal</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-200">
+            <tbody>
               {sale.detalles.map((det) => (
-                <tr key={det.id}>
-                  <td className="px-3 py-2 font-mono text-xs font-semibold">
-                    {det.codigo}
-                  </td>
-                  <td className="px-3 py-2">{det.productoNombre}</td>
-                  <td className="px-3 py-2">
+                <tr key={det.id} className="border-b border-stone-200">
+                  <td className="px-3 py-2 font-mono text-xs font-semibold text-stone-700">{det.codigo}</td>
+                  <td className="px-3 py-2 text-stone-700">{det.productoNombre}</td>
+                  <td className="px-3 py-2 text-stone-700">
                     {det.cantidadPresentacion} {det.unidadMedida}
                   </td>
-                  <td className="px-3 py-2 text-right">{det.cantidad}</td>
-                  <td className="px-3 py-2 text-xs">
-                    {det.tipoPrecio === "CONSIGNACION"
-                      ? "P CONS"
-                      : det.tipoPrecio === "CONTADO"
-                        ? "PVC"
-                        : det.tipoPrecio === "MAYORISTA"
-                          ? "PVM"
-                          : det.tipoPrecio}
+                  <td className="px-3 py-2 text-right font-semibold text-stone-700">{det.cantidad}</td>
+                  <td className="px-3 py-2 text-xs text-stone-700">
+                    {priceTypeLabel(det.tipoPrecio)}
                   </td>
-                  <td className="px-3 py-2 text-right">
-                    {money(det.precioUnitario)}
+                  <td className="px-3 py-2 text-right text-stone-700">{money(det.precioUnitario)}</td>
+                  <td className="px-3 py-2 text-right text-xs text-stone-700">
+                    {Number(det.descuentoPorcentaje) > 0 ? `${det.descuentoPorcentaje}%` : "—"}
                   </td>
-                  <td className="px-3 py-2 text-right text-xs">
-                    {Number(det.descuentoPorcentaje) > 0
-                      ? `${det.descuentoPorcentaje}%`
-                      : "—"}
-                  </td>
-                  <td className="px-3 py-2 text-right font-semibold">
-                    {money(det.subtotal)}
-                  </td>
+                  <td className="px-3 py-2 text-right font-semibold text-stone-700">{money(det.subtotal)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <div className="border-t-2 border-bio-dark bg-stone-50 px-4 py-3 text-right text-sm">
-            <div>Subtotal: {money(sale.subtotal)}</div>
-            <div>Descuento: {money(sale.descuentoTotal)}</div>
-            <div className="text-base font-bold text-bio-dark">
-              TOTAL: {money(sale.total)}
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-8 text-center text-xs text-stone-400">
-          Comprobante interno de venta — BIOABONO • Cochabamba, Bolivia
-          <br />
-          Este documento no es una factura fiscal (sin SIAT).
         </div>
       </div>
-    </div>
+
+
+      <PrintFooter left="BIOABONO — Documento generado por el sistema" right="Comprobante de venta" />
+    </PrintPreview>
   );
 }

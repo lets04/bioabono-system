@@ -36,10 +36,13 @@ export const normalizeProductPayload = (payload: ProductFormState) => ({
   })),
 });
 
+// Vista previa mientras se edita el PVP; replica la regla del backend (backend/src/lib/pricing.ts).
+const priceWithFactor = (pvp: number, factor: number) => Math.round(Math.round(pvp * 100) * factor) / 100;
+
 export const derivedPrices = (pvp: number) => ({
-  consignacion: pvp * 0.8,
-  contado: pvp * 0.75,
-  mayorista: pvp * 0.7,
+  consignacion: priceWithFactor(pvp, 0.8),
+  contado: priceWithFactor(pvp, 0.75),
+  mayorista: priceWithFactor(pvp, 0.7),
 });
 
 export const previewCodigo = (abreviacion: string, cantidad: string) => {

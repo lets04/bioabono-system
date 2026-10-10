@@ -3,14 +3,18 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Eye,
   Plus,
-  Search,
+  Printer,
   ClipboardCheck,
 } from "lucide-react";
 
+import { useFeedback } from "../../components/ui/Feedback";
 import { Modal } from "../../components/ui/Modal";
+import { SearchInput } from "../../components/ui/SearchInput";
 import { IconButton } from "../../components/ui/IconButton";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { DataState } from "../../components/ui/DataState";
+import { DetailLoaderError } from "../../components/ui/DetailLoaderError";
+import { useDetailLoader } from "../../hooks/useDetailLoader";
 
 import { consignationsApi } from "../../api/consignations";
 import { useConsignations } from "../../hooks/useConsignations";
@@ -19,11 +23,13 @@ import { useProducts } from "../../hooks/useProducts";
 
 import { ConsignationForm } from "./ConsignationForm";
 import { ConsignationDetailView } from "./ConsignationDetail";
+import { ConsignationPrint } from "./ConsignationPrint";
 
 import type { ConsignationDetail } from "../../types";
 
 export function ConsignationsView() {
   const queryClient = useQueryClient();
+  const { notify } = useFeedback();
 
   const [search, setSearch] = useState("");
   const [estado, setEstado] = useState("");
@@ -32,6 +38,10 @@ export function ConsignationsView() {
     useState<ConsignationDetail | null>(null);
 
   const [isCreating, setIsCreating] = useState(false);
+  const [printDoc, setPrintDoc] = useState<{
+    consignation: ConsignationDetail;
+    variant: "entrega" | "liquidacion";
+  } | null>(null);
 
   const consignationsQuery = useConsignations(
     search,
@@ -65,11 +75,10 @@ export function ConsignationsView() {
         queryKey: ["products"],
       });
 
+      notify(`Consignación ${consignation.numero} registrada`);
       setIsCreating(false);
-
-      // Abrir automáticamente el detalle
-      // después de crear la consignación.
       setSelected(consignation);
+      setPrintDoc({ consignation, variant: "entrega" });
     },
   });
 
@@ -103,9 +112,9 @@ export function ConsignationsView() {
         queryKey: ["sales"],
       });
 
-      // Mantener abierto el detalle mostrando
-      // la consignación ya liquidada.
+      notify(`Consignación ${consignation.numero} liquidada`);
       setSelected(consignation);
+      setPrintDoc({ consignation, variant: "liquidacion" });
     },
   });
 
@@ -113,18 +122,8 @@ export function ConsignationsView() {
   // ABRIR CONSIGNACIÓN
   // ============================================================
 
-  const handleSelect = async (id: number) => {
-    try {
-      const consignation = await consignationsApi.get(id);
-
-      setSelected(consignation);
-    } catch (error) {
-      console.error(
-        "Error al obtener la consignación:",
-        error,
-      );
-    }
-  };
+  const detail = useDetailLoader(consignationsApi.get);
+  const handleSelect = (id: number) => detail.load(id, setSelected);
 
   return (
     <div>
@@ -137,25 +136,17 @@ export function ConsignationsView() {
 
           {/* BUSCAR */}
 
-          <div className="flex h-11 w-full items-center gap-2 rounded-lg border border-stone-200 bg-white px-3">
-            <Search
-              size={16}
-              className="text-stone-400"
-            />
-
-            <input
-              value={search}
-              onChange={(e) =>
-                setSearch(e.target.value)
-              }
-              placeholder="Buscar por número o cliente"
-              className="w-full bg-transparent text-sm outline-none"
-            />
-          </div>
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Buscar por número o cliente"
+            className="sm:max-w-none"
+          />
 
           {/* ESTADO */}
 
           <select
+            aria-label="Filtrar por estado"
             value={estado}
             onChange={(e) =>
               setEstado(e.target.value)
@@ -178,7 +169,7 @@ export function ConsignationsView() {
 
         <button
           onClick={() => setIsCreating(true)}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-bio-green px-4 text-sm font-semibold text-white hover:bg-bio-dark"
+          className="btn-primary"
         >
           <Plus size={17} />
 
@@ -195,17 +186,19 @@ export function ConsignationsView() {
         isError={consignationsQuery.isError}
       />
 
+      <DetailLoaderError error={detail.error} onDismiss={detail.clearError} />
+
       {/* ======================================================
           TABLA
       ====================================================== */}
 
       {!consignationsQuery.isLoading &&
         !consignationsQuery.isError && (
-          <div className="mt-4 overflow-hidden rounded-lg border border-stone-200 bg-white">
+          <div className="table-card">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[820px] text-left text-sm">
 
-                <thead className="bg-stone-50 text-xs uppercase text-stone-500">
+                <thead className="table-head">
                   <tr>
                     <th className="px-4 py-3">
                       N.º consignación
@@ -233,7 +226,7 @@ export function ConsignationsView() {
                   </tr>
                 </thead>
 
-                <tbody className="divide-y divide-stone-100">
+                <tbody className="table-body divide-y divide-stone-100">
                   {(consignationsQuery.data ?? []).map(
                     (consignation) => (
                       <tr
@@ -289,35 +282,32 @@ export function ConsignationsView() {
 
                         <td className="px-4 py-3">
                           <div className="flex justify-end gap-2">
-
-                            {consignation.estado ===
-                            "PENDIENTE" ? (
+                            <IconButton
+                              label="Imprimir"
+                              icon={Printer}
+                              onClick={async () => {
+                                const detail = await consignationsApi.get(consignation.id);
+                                setPrintDoc({
+                                  consignation: detail,
+                                  variant: consignation.estado === "LIQUIDADA" ? "liquidacion" : "entrega",
+                                });
+                              }}
+                            />
+                            {consignation.estado === "PENDIENTE" ? (
                               <button
-                                onClick={() =>
-                                  handleSelect(
-                                    consignation.id,
-                                  )
-                                }
+                                onClick={() => handleSelect(consignation.id)}
                                 className="inline-flex items-center gap-2 rounded-lg bg-bio-green px-3 py-2 text-xs font-semibold text-white transition hover:bg-bio-dark"
                               >
-                                <ClipboardCheck
-                                  size={15}
-                                />
-
+                                <ClipboardCheck size={15} />
                                 Liquidar
                               </button>
                             ) : (
                               <IconButton
                                 label="Ver detalle"
-                                onClick={() =>
-                                  handleSelect(
-                                    consignation.id,
-                                  )
-                                }
+                                onClick={() => handleSelect(consignation.id)}
                                 icon={Eye}
                               />
                             )}
-
                           </div>
                         </td>
                       </tr>
@@ -345,7 +335,7 @@ export function ConsignationsView() {
       {isCreating && (
         <Modal
           title="Nueva consignación"
-          onClose={() => setIsCreating(false)}
+          onClose={() => { setIsCreating(false); createMutation.reset(); }}
         >
           <ConsignationForm
             customers={customersQuery.data ?? []}
@@ -369,7 +359,7 @@ export function ConsignationsView() {
       {selected && (
         <Modal
           title={`Consignación ${selected.numero}`}
-          onClose={() => setSelected(null)}
+          onClose={() => { setSelected(null); liquidateMutation.reset(); }}
         >
           <ConsignationDetailView
             consignation={selected}
@@ -378,6 +368,12 @@ export function ConsignationsView() {
             }
             error={
               liquidateMutation.error?.message
+            }
+            onPrintEntrega={() => setPrintDoc({ consignation: selected, variant: "entrega" })}
+            onPrintLiquidacion={
+              selected.estado === "LIQUIDADA"
+                ? () => setPrintDoc({ consignation: selected, variant: "liquidacion" })
+                : undefined
             }
             onLiquidate={(payload) => {
               // Si ya está liquidada no hacemos nada.
@@ -394,6 +390,14 @@ export function ConsignationsView() {
             }}
           />
         </Modal>
+      )}
+
+      {printDoc && (
+        <ConsignationPrint
+          consignation={printDoc.consignation}
+          variant={printDoc.variant}
+          onClose={() => setPrintDoc(null)}
+        />
       )}
     </div>
   );

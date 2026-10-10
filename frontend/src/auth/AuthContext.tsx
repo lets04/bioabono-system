@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { authApi } from "../api/auth";
+import { ApiError } from "../api/client";
 import { clearSession, getSession, saveSession, type AuthUser } from "./session";
 
 type AuthContextValue = {
@@ -28,9 +29,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         saveSession({ token: session.token, user: current });
         setUser(current);
       })
-      .catch(() => {
-        clearSession();
-        setUser(null);
+      .catch((error) => {
+        // Solo un rechazo explícito invalida la sesión; un fallo de red conserva la sesión guardada.
+        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+          clearSession();
+          setUser(null);
+        } else {
+          setUser(session.user);
+        }
       })
       .finally(() => setIsReady(true));
   }, []);

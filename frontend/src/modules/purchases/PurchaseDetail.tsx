@@ -44,7 +44,7 @@ export function PurchaseDetail({ purchase, onPrint }: Props) {
       <div className="overflow-hidden rounded-lg border border-stone-200">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-sm">
-            <thead className="bg-stone-50 text-xs uppercase text-stone-500">
+            <thead className="table-head">
               <tr>
                 <th className="px-4 py-3">Código</th>
                 <th className="px-4 py-3">Producto</th>

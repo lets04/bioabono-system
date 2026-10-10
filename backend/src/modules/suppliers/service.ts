@@ -12,16 +12,12 @@ export async function getSupplier(id: number) {
 }
 
 export async function createSupplier(body: unknown) {
-  const input = supplierCreateSchema.parse(body);
-  // normalizar email vacío a null ya en repository
-  if (input.email === "") (input as any).email = null;
-  return repository.createSupplier(input);
+  return repository.createSupplier(supplierCreateSchema.parse(body));
 }
 
 export async function updateSupplier(id: number, body: unknown) {
   await getSupplier(id);
   const input = supplierUpdateSchema.parse(body);
-  if ((input as any).email === "") (input as any).email = null;
   const updated = await repository.updateSupplier(id, input);
   if (!updated) throw new Error("SUPPLIER_NOT_FOUND");
   return updated;

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import {
   inventoryMovements,
@@ -9,6 +9,9 @@ import {
   suppliers,
   auditLogs,
 } from "../../db/schema/index.js";
+import { nextDocumentNumber } from "../../lib/documentNumber.js";
+import { adjustStock } from "../../lib/stock.js";
+import { fromCents, toCents } from "../../lib/pricing.js";
 
 export async function listPurchases(search?: string) {
   const term = search?.trim();
@@ -41,7 +44,7 @@ export async function listPurchases(search?: string) {
   const detailsCount = await db
     .select({ compraId: purchaseDetails.compraId, count: sql<number>`count(*)::int` })
     .from(purchaseDetails)
-    .where(sql`${purchaseDetails.compraId} IN (${sql.join(ids.map((id) => sql`${id}`), sql`,`)})`)
+    .where(inArray(purchaseDetails.compraId, ids))
     .groupBy(purchaseDetails.compraId);
 
   const countMap = new Map(detailsCount.map((d) => [d.compraId, d.count]));
@@ -111,16 +114,14 @@ export async function createPurchaseWithTransaction(input: {
     if (isNaN(fecha.getTime())) throw new Error("INVALID_DATE");
 
     // Validar presentaciones y calcular totales
-    let subtotal = 0;
+    let subtotalCents = 0;
     for (const det of input.detalles) {
       const precio = Number(det.precioUnitario);
       if (!Number.isFinite(precio) || precio < 0) throw new Error("INVALID_PRICE");
-      subtotal += det.cantidad * precio;
+      subtotalCents += det.cantidad * toCents(precio);
     }
 
-    const numero = `CMP-${Date.now()}-${Math.floor(Math.random() * 1000)
-      .toString()
-      .padStart(3, "0")}`;
+    const numero = await nextDocumentNumber(tx, "CMP", purchases, purchases.numero);
 
     const [purchase] = await tx
       .insert(purchases)
@@ -129,9 +130,9 @@ export async function createPurchaseWithTransaction(input: {
         proveedorId: input.proveedorId,
         usuarioId: input.usuarioId,
         fecha,
-        subtotal: String(subtotal.toFixed(2)),
+        subtotal: fromCents(subtotalCents),
         descuento: "0",
-        total: String(subtotal.toFixed(2)),
+        total: fromCents(subtotalCents),
         estado: "COMPLETADA",
         observacion: input.observacion?.trim() || null,
       })
@@ -141,7 +142,6 @@ export async function createPurchaseWithTransaction(input: {
       const [presentacion] = await tx
         .select({
           id: productPresentations.id,
-          stockActual: productPresentations.stockActual,
           activo: productPresentations.activo,
         })
         .from(productPresentations)
@@ -151,23 +151,17 @@ export async function createPurchaseWithTransaction(input: {
       if (!presentacion) throw new Error(`PRESENTATION_NOT_FOUND:${det.presentacionId}`);
       if (!presentacion.activo) throw new Error(`PRESENTATION_INACTIVE:${det.presentacionId}`);
 
-      const precio = Number(det.precioUnitario);
-      const detSubtotal = det.cantidad * precio;
-      const stockAnterior = presentacion.stockActual;
-      const stockPosterior = stockAnterior + det.cantidad;
+      const precioCents = toCents(det.precioUnitario);
 
       await tx.insert(purchaseDetails).values({
         compraId: purchase.id,
         presentacionId: det.presentacionId,
         cantidad: det.cantidad,
-        precioUnitario: String(precio.toFixed(2)),
-        subtotal: String(detSubtotal.toFixed(2)),
+        precioUnitario: fromCents(precioCents),
+        subtotal: fromCents(det.cantidad * precioCents),
       });
 
-      await tx
-        .update(productPresentations)
-        .set({ stockActual: stockPosterior, updatedAt: new Date() })
-        .where(eq(productPresentations.id, det.presentacionId));
+      const { stockAnterior, stockPosterior } = await adjustStock(tx, det.presentacionId, det.cantidad);
 
       await tx.insert(inventoryMovements).values({
         presentacionId: det.presentacionId,

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, ilike, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte, sql, type SQL } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import {
   categories,
@@ -14,20 +14,41 @@ import {
   suppliers,
 } from "../../db/schema/index.js";
 import type { ReportFilters } from "./schema.js";
+import { env } from "../../config/env.js";
 
+// Un filtro "YYYY-MM-DD" se interpreta como inicio del día en la zona del negocio, no en UTC.
 function parseDate(value?: string | null): Date | undefined {
   if (!value) return undefined;
-  const d = new Date(value);
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(value)
+    ? new Date(`${value}T00:00:00${env.businessUtcOffset}`)
+    : new Date(value);
   return isNaN(d.getTime()) ? undefined : d;
 }
 
-// PURCHASES REPORT
-export async function getPurchasesReport(filters: ReportFilters) {
+/** Desde el inicio de `from` hasta el último milisegundo del día `to`. */
+function dateRange(filters: ReportFilters) {
   const from = parseDate(filters.from);
   const to = parseDate(filters.to);
   const toEnd = to ? new Date(to.getTime() + 24 * 60 * 60 * 1000 - 1) : undefined;
+  return { from, toEnd };
+}
 
-  const conditions: any[] = [];
+type StockStatus = "sin" | "bajo" | "normal";
+
+function stockStatus(stockActual: number, stockMinimo: number): StockStatus {
+  if (stockActual === 0) return "sin";
+  if (stockActual <= stockMinimo) return "bajo";
+  return "normal";
+}
+
+const isStockStatus = (estado: ReportFilters["estado"]): estado is StockStatus =>
+  estado === "sin" || estado === "bajo" || estado === "normal";
+
+// PURCHASES REPORT
+export async function getPurchasesReport(filters: ReportFilters) {
+  const { from, toEnd } = dateRange(filters);
+
+  const conditions: SQL[] = [];
   if (from) conditions.push(gte(purchases.fecha, from));
   if (toEnd) conditions.push(lte(purchases.fecha, toEnd));
   if (filters.proveedorId) conditions.push(eq(purchases.proveedorId, filters.proveedorId));
@@ -58,7 +79,7 @@ export async function getPurchasesReport(filters: ReportFilters) {
     .innerJoin(purchaseDetails, eq(purchaseDetails.compraId, purchases.id))
     .leftJoin(productPresentations, eq(purchaseDetails.presentacionId, productPresentations.id))
     .leftJoin(products, eq(productPresentations.productoId, products.id))
-    .where(conditions.length ? and(...conditions) : undefined)
+    .where(and(...conditions))
     .orderBy(desc(purchases.fecha), asc(purchaseDetails.id));
 
   // Summary per purchase and overall
@@ -71,7 +92,7 @@ export async function getPurchasesReport(filters: ReportFilters) {
             count: sql<number>`count(*)::int`,
           })
           .from(purchases)
-          .where(conditions.length ? and(...conditions) : undefined)
+          .where(and(...conditions))
       : [];
 
   const porProveedor =
@@ -85,7 +106,7 @@ export async function getPurchasesReport(filters: ReportFilters) {
           })
           .from(purchases)
           .leftJoin(suppliers, eq(purchases.proveedorId, suppliers.id))
-          .where(conditions.length ? and(...conditions) : undefined)
+          .where(and(...conditions))
           .groupBy(suppliers.id, suppliers.nombre)
           .orderBy(desc(sql`sum(${purchases.total}::numeric)`))
       : [];
@@ -104,22 +125,14 @@ export async function getPurchasesReport(filters: ReportFilters) {
 
 // SALES REPORT
 export async function getSalesReport(filters: ReportFilters) {
-  const from = parseDate(filters.from);
-  const to = parseDate(filters.to);
-  const toEnd = to ? new Date(to.getTime() + 24 * 60 * 60 * 1000 - 1) : undefined;
+  const { from, toEnd } = dateRange(filters);
 
-  const conditions: any[] = [];
+  const conditions: SQL[] = [];
   if (from) conditions.push(gte(sales.fecha, from));
   if (toEnd) conditions.push(lte(sales.fecha, toEnd));
   if (filters.clienteId) conditions.push(eq(sales.clienteId, filters.clienteId));
-  // tipoPrecio filter applies to detail
-  // we handle after
-
-  let tipoPrecioFilter: string | undefined;
-  if (filters.tipoPrecio) tipoPrecioFilter = filters.tipoPrecio;
-
-  const detailConditions: any[] = [];
-  if (tipoPrecioFilter) detailConditions.push(eq(saleDetails.tipoPrecio, tipoPrecioFilter as any));
+  // El tipo de precio se guarda por línea, así que filtra el detalle.
+  if (filters.tipoPrecio) conditions.push(eq(saleDetails.tipoPrecio, filters.tipoPrecio));
 
   const rows = await db
     .select({
@@ -151,34 +164,23 @@ export async function getSalesReport(filters: ReportFilters) {
     .innerJoin(saleDetails, eq(saleDetails.ventaId, sales.id))
     .leftJoin(productPresentations, eq(saleDetails.presentacionId, productPresentations.id))
     .leftJoin(products, eq(productPresentations.productoId, products.id))
-    .where(
-      conditions.length || detailConditions.length
-        ? and(...conditions, ...detailConditions)
-        : undefined,
-    )
+    .where(and(...conditions))
     .orderBy(desc(sales.fecha), asc(saleDetails.id));
 
-  // For summary we need to filter sales that have at least one detail matching tipoPrecio if filter present
-  // Simplified: if tipoPrecio filter, compute summary from rows (already filtered)
-  let ventaIds = [...new Set(rows.map((r) => r.id))];
-  // If tipoPrecio filter, we need to consider only sales that appear in rows
-  // For overall totals, compute from rows aggregates to respect detail filter
+  // Los totales salen de las líneas filtradas para respetar el filtro por tipo de precio.
   const summary = {
-    cantidadVentas: ventaIds.length,
+    cantidadVentas: new Set(rows.map((r) => r.id)).size,
     unidadesVendidas: rows.reduce((sum, r) => sum + r.cantidad, 0),
     totalDescuentos: rows.reduce((sum, r) => sum + Number(r.descuentoMonto) * r.cantidad, 0).toFixed(2),
     totalVentas: rows.reduce((sum, r) => sum + Number(r.detalleSubtotal), 0).toFixed(2),
   };
-
-  // If no tipoPrecio filter, we could also compute totals from sales table directly for consistency
-  // But to keep filtered consistency, use rows aggregation as above when filter present
 
   return { rows, summary };
 }
 
 // INVENTORY REPORT
 export async function getInventoryReport(filters: ReportFilters) {
-  const conditions: any[] = [];
+  const conditions: SQL[] = [];
   if (filters.categoriaId) conditions.push(eq(products.categoriaId, filters.categoriaId));
 
   const rows = await db
@@ -200,17 +202,12 @@ export async function getInventoryReport(filters: ReportFilters) {
     .from(productPresentations)
     .innerJoin(products, eq(productPresentations.productoId, products.id))
     .leftJoin(categories, eq(products.categoriaId, categories.id))
-    .where(conditions.length ? and(...conditions) : undefined)
+    .where(and(...conditions))
     .orderBy(asc(productPresentations.codigo));
 
-  // Filter by estado in JS (bajo/sin/normal) to avoid complex SQL
-  let filtered = rows;
-  if (filters.estado && filters.estado !== "todos") {
-    filtered = rows.filter((r) => {
-      const estado = r.stockActual === 0 ? "sin" : r.stockActual <= r.stockMinimo ? "bajo" : "normal";
-      return estado === filters.estado;
-    });
-  }
+  const { estado } = filters;
+  const filtered =
+    estado && estado !== "todos" ? rows.filter((r) => stockStatus(r.stockActual, r.stockMinimo) === estado) : rows;
 
   const summary = {
     totalPresentaciones: filtered.length,
@@ -224,7 +221,7 @@ export async function getInventoryReport(filters: ReportFilters) {
 
 // PRODUCTS REPORT
 export async function getProductsReport(filters: ReportFilters) {
-  const conditions: any[] = [];
+  const conditions: SQL[] = [];
   if (filters.categoriaId) conditions.push(eq(products.categoriaId, filters.categoriaId));
   if (filters.estado === "activo") conditions.push(eq(products.activo, true));
   if (filters.estado === "inactivo") conditions.push(eq(products.activo, false));
@@ -241,60 +238,62 @@ export async function getProductsReport(filters: ReportFilters) {
     })
     .from(products)
     .leftJoin(categories, eq(products.categoriaId, categories.id))
-    .where(conditions.length ? and(...conditions) : undefined)
+    .where(and(...conditions))
     .orderBy(asc(products.nombre));
 
   if (baseRows.length === 0) return { rows: [], summary: { totalProductos: 0, totalPresentaciones: 0 } };
 
-  const productIds = baseRows.map((p) => p.id);
-  const presentaciones = await db
-    .select({
-      id: productPresentations.id,
-      productoId: productPresentations.productoId,
-      codigo: productPresentations.codigo,
-      cantidad: productPresentations.cantidad,
-      unidadMedida: productPresentations.unidadMedida,
-      pvp: productPresentations.pvp,
-      stockActual: productPresentations.stockActual,
-      stockMinimo: productPresentations.stockMinimo,
-      activo: productPresentations.activo,
-      presentacionEstado: sql<string>`CASE WHEN ${productPresentations.stockActual} = 0 THEN 'sin' WHEN ${productPresentations.stockActual} <= ${productPresentations.stockMinimo} THEN 'bajo' ELSE 'normal' END`,
-    })
-    .from(productPresentations)
-    .where(sql`${productPresentations.productoId} IN (${sql.join(productIds.map((id) => sql`${id}`), sql`,`)})`)
-    .orderBy(asc(productPresentations.codigo));
+  const presentaciones = (
+    await db
+      .select({
+        id: productPresentations.id,
+        productoId: productPresentations.productoId,
+        codigo: productPresentations.codigo,
+        cantidad: productPresentations.cantidad,
+        unidadMedida: productPresentations.unidadMedida,
+        pvp: productPresentations.pvp,
+        stockActual: productPresentations.stockActual,
+        stockMinimo: productPresentations.stockMinimo,
+        activo: productPresentations.activo,
+      })
+      .from(productPresentations)
+      .where(
+        inArray(
+          productPresentations.productoId,
+          baseRows.map((p) => p.id),
+        ),
+      )
+      .orderBy(asc(productPresentations.codigo))
+  ).map((pres) => ({ ...pres, presentacionEstado: stockStatus(pres.stockActual, pres.stockMinimo) }));
 
-  // ultimo precio de compra por presentación
-  const ultimoPrecios =
-    presentaciones.length > 0
-      ? await db
-          .select({
-            presentacionId: purchaseDetails.presentacionId,
-            precio: purchaseDetails.precioUnitario,
-          })
-          .from(purchaseDetails)
-          .where(sql`${purchaseDetails.presentacionId} IN (${sql.join(presentaciones.map((p) => sql`${p.id}`), sql`,`)})`)
-          .orderBy(sql`${purchaseDetails.id} DESC`)
-      : [];
+  // Último precio de compra por presentación
+  const ultimoPrecios = await db
+    .select({ presentacionId: purchaseDetails.presentacionId, precio: purchaseDetails.precioUnitario })
+    .from(purchaseDetails)
+    .where(
+      inArray(
+        purchaseDetails.presentacionId,
+        presentaciones.map((p) => p.id),
+      ),
+    )
+    .orderBy(desc(purchaseDetails.id));
 
   const ultimoMap = new Map<number, string>();
   for (const r of ultimoPrecios) {
     if (!ultimoMap.has(r.presentacionId)) ultimoMap.set(r.presentacionId, r.precio);
   }
 
-  let presentacionEstadoFilter = filters.estado as string | undefined;
-  // estado filter for presentaciones if is bajo/sin/normal
-  let filteredPresentaciones = presentaciones;
-  if (presentacionEstadoFilter && ["bajo", "sin", "normal"].includes(presentacionEstadoFilter)) {
-    filteredPresentaciones = presentaciones.filter((p) => (p as any).presentacionEstado === presentacionEstadoFilter);
-  } else if (filters.estado === "activo") {
-    filteredPresentaciones = presentaciones.filter((p) => p.activo);
-  } else if (filters.estado === "inactivo") {
-    filteredPresentaciones = presentaciones.filter((p) => !p.activo);
-  }
+  const { estado } = filters;
+  const filteredPresentaciones = presentaciones.filter((p) => {
+    if (isStockStatus(estado)) return p.presentacionEstado === estado;
+    if (estado === "activo") return p.activo;
+    if (estado === "inactivo") return !p.activo;
+    return true;
+  });
 
+  const productsById = new Map(baseRows.map((p) => [p.id, p]));
   const rows = filteredPresentaciones.map((pres) => {
-    const prod = baseRows.find((b) => b.id === pres.productoId)!;
+    const prod = productsById.get(pres.productoId)!;
     return {
       ...pres,
       productoNombre: prod.nombre,
@@ -320,15 +319,13 @@ export async function getProductsReport(filters: ReportFilters) {
 
 // CONSIGNATIONS REPORT
 export async function getConsignationsReport(filters: ReportFilters) {
-  const from = parseDate(filters.from);
-  const to = parseDate(filters.to);
-  const toEnd = to ? new Date(to.getTime() + 24 * 60 * 60 * 1000 - 1) : undefined;
+  const { from, toEnd } = dateRange(filters);
 
-  const conditions: any[] = [];
+  const conditions: SQL[] = [];
   if (from) conditions.push(gte(consignations.fechaEntrega, from));
   if (toEnd) conditions.push(lte(consignations.fechaEntrega, toEnd));
   if (filters.estado === "PENDIENTE" || filters.estado === "LIQUIDADA")
-    conditions.push(eq(consignations.estado, filters.estado as any));
+    conditions.push(eq(consignations.estado, filters.estado));
 
   const rows = await db
     .select({
@@ -356,7 +353,7 @@ export async function getConsignationsReport(filters: ReportFilters) {
     .innerJoin(consignmentDetails, eq(consignmentDetails.consignacionId, consignations.id))
     .leftJoin(productPresentations, eq(consignmentDetails.presentacionId, productPresentations.id))
     .leftJoin(products, eq(productPresentations.productoId, products.id))
-    .where(conditions.length ? and(...conditions) : undefined)
+    .where(and(...conditions))
     .orderBy(desc(consignations.fechaEntrega), asc(consignmentDetails.id));
 
   const consignationIds = [...new Set(rows.map((r) => r.id))];
@@ -368,7 +365,7 @@ export async function getConsignationsReport(filters: ReportFilters) {
             count: sql<number>`count(*)::int`,
           })
           .from(consignations)
-          .where(conditions.length ? and(...conditions) : undefined)
+          .where(and(...conditions))
           .groupBy(consignations.estado)
       : [];
 
