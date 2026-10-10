@@ -1,9 +1,5 @@
 import { z } from "zod";
-
-const numericString = z
-  .union([z.string(), z.number()])
-  .transform((value) => String(value).trim())
-  .refine((value) => value !== "" && Number.isFinite(Number(value)), "Debe ser un numero valido");
+import { numericString } from "../../lib/validation.js";
 
 const presentacionCreateSchema = z.object({
   cantidad: numericString.refine((value) => Number(value) > 0, "La cantidad debe ser mayor que cero"),

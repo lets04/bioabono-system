@@ -1,44 +1,19 @@
 import { Elysia } from "elysia";
-import { ZodError } from "zod";
-import { fallbackError, parseId, validationError } from "../../lib/http.js";
+import { COMMON_ERRORS, mapDomainError, parseId, PRESENTATION_ERRORS, type SetLike } from "../../lib/http.js";
 import { requireAuth } from "../auth/plugin.js";
 import * as service from "./service.js";
 
-function handleError(error: unknown, set: { status?: number | string }) {
-  if (error instanceof ZodError) return validationError(error, set);
-  if (error instanceof Error) {
-    const msg = error.message;
-    if (msg === "PURCHASE_NOT_FOUND") {
-      set.status = 404;
-      return { error: msg, message: "La compra no existe" };
-    }
-    if (msg === "SUPPLIER_NOT_FOUND") {
-      set.status = 404;
-      return { error: msg, message: "El proveedor no existe" };
-    }
-    if (msg === "SUPPLIER_INACTIVE") {
-      set.status = 409;
-      return { error: msg, message: "El proveedor está inactivo" };
-    }
-    if (msg.startsWith("PRESENTATION_NOT_FOUND")) {
-      set.status = 404;
-      return { error: "PRESENTATION_NOT_FOUND", message: `Presentación no encontrada: ${msg.split(":")[1]}` };
-    }
-    if (msg.startsWith("PRESENTATION_INACTIVE")) {
-      set.status = 409;
-      return { error: "PRESENTATION_INACTIVE", message: `Presentación inactiva: ${msg.split(":")[1]}` };
-    }
-    if (msg === "INVALID_ID" || msg === "INVALID_DATE" || msg === "INVALID_PRICE") {
-      set.status = 400;
-      return { error: msg, message: "Datos inválidos" };
-    }
-    if (msg === "UNAUTHORIZED") {
-      set.status = 401;
-      return { error: msg, message: "No autenticado" };
-    }
-  }
-  return fallbackError(error, set);
-}
+const ERRORS = {
+  ...COMMON_ERRORS,
+  PRESENTATION_NOT_FOUND: PRESENTATION_ERRORS.PRESENTATION_NOT_FOUND,
+  PRESENTATION_INACTIVE: PRESENTATION_ERRORS.PRESENTATION_INACTIVE,
+  INVALID_PRICE: { status: 400, message: "Datos inválidos" },
+  PURCHASE_NOT_FOUND: { status: 404, message: "La compra no existe" },
+  SUPPLIER_NOT_FOUND: { status: 404, message: "El proveedor no existe" },
+  SUPPLIER_INACTIVE: { status: 409, message: "El proveedor está inactivo" },
+};
+
+const handleError = (error: unknown, set: SetLike) => mapDomainError(error, set, ERRORS);
 
 export const purchasesModule = new Elysia({ prefix: "/purchases" })
   .use(requireAuth)

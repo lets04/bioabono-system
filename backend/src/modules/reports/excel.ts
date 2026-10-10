@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
+import { derivedPrices } from "../../lib/pricing.js";
 
 const BIO_DARK = "24421F";
 const BIO_GREEN = "467D2A";
@@ -10,7 +11,6 @@ const HEADER_FILL = {
   fgColor: { argb: BIO_DARK },
 } as const;
 const HEADER_FONT = { color: { argb: "FFFFFFFF" }, bold: true, size: 10 };
-const TITLE_FONT = { color: { argb: BIO_DARK }, bold: true, size: 16 };
 const SUBTITLE_FONT = { color: { argb: "6B7280" }, size: 9 };
 // Mismo nivel relativo desde src/ (tsx) y dist/ (build): backend/assets
 const LOGO_PATH = fileURLToPath(
@@ -63,6 +63,28 @@ function styleDataCell(cell: ExcelJS.Cell, isAlternate = false) {
       pattern: "solid",
       fgColor: { argb: "F9FAFB" },
     };
+}
+
+type CellFormat = { numFmt?: string; horizontal: "left" | "center" | "right" };
+const DATE_FORMAT: CellFormat = { numFmt: "dd/mm/yyyy", horizontal: "center" };
+const MONEY_FORMAT: CellFormat = { numFmt: '#,##0.00 "Bs"', horizontal: "right" };
+const INT_FORMAT: CellFormat = { numFmt: "0", horizontal: "right" };
+const DECIMAL_FORMAT: CellFormat = { numFmt: "0.00", horizontal: "right" };
+const LEFT_FORMAT: CellFormat = { horizontal: "left" };
+
+function applyFormat(cell: ExcelJS.Cell, format?: CellFormat) {
+  if (!format) return;
+  if (format.numFmt) cell.numFmt = format.numFmt;
+  cell.alignment = { horizontal: format.horizontal };
+}
+
+const PRICE_TYPE_LABELS: Record<string, string> = { CONSIGNACION: "P CONS", CONTADO: "PVC", MAYORISTA: "PVM" };
+const priceTypeLabel = (tipo: string) => PRICE_TYPE_LABELS[tipo] ?? tipo;
+
+function stockLabel(stockActual: number, stockMinimo: number, lowLabel: string) {
+  if (stockActual === 0) return "Sin stock";
+  if (stockActual <= stockMinimo) return lowLabel;
+  return "Normal";
 }
 
 function addReportHeader(
@@ -204,7 +226,7 @@ export async function buildPurchasesWorkbook(
 
   const colCount = 9;
   const periodDesc = `Período: ${filters.from || "—"} al ${filters.to || "—"}`;
-  const filterDesc = `Filtros: ${filters.proveedorNombre ? `Proveedor: ${filters.proveedorNombre}` : "Proveedor: Todos"}`;
+  const filterDesc = `Filtros: Proveedor: ${filters.proveedorNombre || "Todos"}`;
   addReportHeader(
     ws,
     wb,
@@ -263,23 +285,22 @@ export async function buildPurchasesWorkbook(
       Number(r.precioUnitario),
       Number(r.detalleSubtotal),
     ];
+    const formats: Array<CellFormat | undefined> = [
+      DATE_FORMAT,
+      LEFT_FORMAT,
+      undefined,
+      LEFT_FORMAT,
+      undefined,
+      undefined,
+      INT_FORMAT,
+      MONEY_FORMAT,
+      MONEY_FORMAT,
+    ];
     values.forEach((v, i) => {
       const cell = row.getCell(i + 1);
       cell.value = v;
       styleDataCell(cell, isAlt);
-      // formats
-      if (i === 0) {
-        cell.numFmt = "dd/mm/yyyy";
-        cell.alignment = { horizontal: "center" };
-      } else if (i === 6) {
-        cell.numFmt = "0";
-        cell.alignment = { horizontal: "right" };
-      } else if (i === 7 || i === 8) {
-        cell.numFmt = '#,##0.00 "Bs"';
-        cell.alignment = { horizontal: "right" };
-      } else if (i === 1 || i === 3) {
-        cell.alignment = { horizontal: "left" };
-      }
+      applyFormat(cell, formats[i]);
     });
     row.height = 15;
     row.commit();
@@ -360,15 +381,8 @@ export async function buildSalesWorkbook(
   });
   const colCount = 12;
   const periodDesc = `Período: ${filters.from || "—"} al ${filters.to || "—"}`;
-  const tipoLabel =
-    filters.tipoPrecio === "CONSIGNACION"
-      ? "P CONS"
-      : filters.tipoPrecio === "CONTADO"
-        ? "PVC"
-        : filters.tipoPrecio === "MAYORISTA"
-          ? "PVM"
-          : filters.tipoPrecio || "Todos";
-  const filterDesc = `Filtros: ${filters.clienteNombre ? `Cliente: ${filters.clienteNombre}` : "Cliente: Todos"} | Tipo: ${tipoLabel}`;
+  const tipoLabel = filters.tipoPrecio ? priceTypeLabel(filters.tipoPrecio) : "Todos";
+  const filterDesc = `Filtros: Cliente: ${filters.clienteNombre || "Todos"} | Tipo: ${tipoLabel}`;
   addReportHeader(
     ws,
     wb,
@@ -410,18 +424,25 @@ export async function buildSalesWorkbook(
   });
   headerRow.height = 20;
 
+  const formats: Array<CellFormat | undefined> = [
+    DATE_FORMAT,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    DECIMAL_FORMAT,
+    undefined,
+    MONEY_FORMAT,
+    DECIMAL_FORMAT,
+    MONEY_FORMAT,
+    MONEY_FORMAT,
+  ];
+
   let rowIdx = 9;
   for (const r of data.rows) {
     const row = ws.getRow(rowIdx);
     const isAlt = rowIdx % 2 === 0;
-    const tipoLabel =
-      r.tipoPrecio === "CONSIGNACION"
-        ? "P CONS"
-        : r.tipoPrecio === "CONTADO"
-          ? "PVC"
-          : r.tipoPrecio === "MAYORISTA"
-            ? "PVM"
-            : r.tipoPrecio;
     const values = [
       new Date(r.fecha),
       r.numero,
@@ -430,7 +451,7 @@ export async function buildSalesWorkbook(
       r.productoNombre,
       `${r.cantidadPresentacion} ${r.unidadMedida}`,
       r.cantidad,
-      tipoLabel,
+      priceTypeLabel(r.tipoPrecio),
       Number(r.precioUnitario),
       Number(r.descuentoPorcentaje),
       Number(r.descuentoMonto),
@@ -440,16 +461,7 @@ export async function buildSalesWorkbook(
       const cell = row.getCell(i + 1);
       cell.value = v;
       styleDataCell(cell, isAlt);
-      if (i === 0) {
-        cell.numFmt = "dd/mm/yyyy";
-        cell.alignment = { horizontal: "center" };
-      } else if (i === 6 || i === 9) {
-        cell.numFmt = "0.00";
-        cell.alignment = { horizontal: "right" };
-      } else if (i === 8 || i === 10 || i === 11) {
-        cell.numFmt = '#,##0.00 "Bs"';
-        cell.alignment = { horizontal: "right" };
-      }
+      applyFormat(cell, formats[i]);
     });
     row.height = 15;
     rowIdx++;
@@ -522,7 +534,7 @@ export async function buildInventoryWorkbook(
   });
   const colCount = 9;
   const periodDesc = `Generado: ${new Date().toLocaleDateString("es-BO")}`;
-  const filterDesc = `Filtros: ${filters.categoriaNombre ? `Categoría: ${filters.categoriaNombre}` : "Categoría: Todas"} | Estado: ${filters.estado || "Todos"}`;
+  const filterDesc = `Filtros: Categoría: ${filters.categoriaNombre || "Todas"} | Estado: ${filters.estado || "Todos"}`;
   addReportHeader(
     ws,
     wb,
@@ -563,12 +575,7 @@ export async function buildInventoryWorkbook(
 
   let rowIdx = 9;
   for (const r of data.rows) {
-    const estado =
-      r.stockActual === 0
-        ? "Sin stock"
-        : r.stockActual <= r.stockMinimo
-          ? "Stock bajo"
-          : "Normal";
+    const estado = stockLabel(r.stockActual, r.stockMinimo, "Stock bajo");
     const row = ws.getRow(rowIdx);
     const isAlt = rowIdx % 2 === 0;
     const values = [
@@ -633,7 +640,7 @@ export async function buildProductsWorkbook(
   });
   const colCount = 14;
   const periodDesc = `Generado: ${new Date().toLocaleDateString("es-BO")}`;
-  const filterDesc = `Filtros: ${filters.categoriaNombre ? `Categoría: ${filters.categoriaNombre}` : "Categoría: Todas"} | Estado: ${filters.estado || "Todos"}`;
+  const filterDesc = `Filtros: Categoría: ${filters.categoriaNombre || "Todas"} | Estado: ${filters.estado || "Todos"}`;
   addReportHeader(
     ws,
     wb,
@@ -679,18 +686,8 @@ export async function buildProductsWorkbook(
 
   let rowIdx = 9;
   for (const r of data.rows) {
-    const pvp = Number(r.pvp);
-    const consignacion = (pvp * 0.8).toFixed(2);
-    const contado = (pvp * 0.75).toFixed(2);
-    const mayorista = (pvp * 0.7).toFixed(2);
-    const estado =
-      !r.activo || !r.productoActivo
-        ? "Inactivo"
-        : r.stockActual === 0
-          ? "Sin stock"
-          : r.stockActual <= r.stockMinimo
-            ? "Bajo"
-            : "Normal";
+    const { consignacion, contado, mayorista } = derivedPrices(r.pvp);
+    const estado = !r.activo || !r.productoActivo ? "Inactivo" : stockLabel(r.stockActual, r.stockMinimo, "Bajo");
     const row = ws.getRow(rowIdx);
     const isAlt = rowIdx % 2 === 0;
     const values = [

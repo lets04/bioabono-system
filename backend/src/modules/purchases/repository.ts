@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import {
   inventoryMovements,
@@ -9,6 +9,7 @@ import {
   suppliers,
   auditLogs,
 } from "../../db/schema/index.js";
+import { nextDocumentNumber } from "../../lib/documentNumber.js";
 import { adjustStock } from "../../lib/stock.js";
 import { fromCents, toCents } from "../../lib/pricing.js";
 
@@ -43,7 +44,7 @@ export async function listPurchases(search?: string) {
   const detailsCount = await db
     .select({ compraId: purchaseDetails.compraId, count: sql<number>`count(*)::int` })
     .from(purchaseDetails)
-    .where(sql`${purchaseDetails.compraId} IN (${sql.join(ids.map((id) => sql`${id}`), sql`,`)})`)
+    .where(inArray(purchaseDetails.compraId, ids))
     .groupBy(purchaseDetails.compraId);
 
   const countMap = new Map(detailsCount.map((d) => [d.compraId, d.count]));
@@ -120,9 +121,7 @@ export async function createPurchaseWithTransaction(input: {
       subtotalCents += det.cantidad * toCents(precio);
     }
 
-    const numero = `CMP-${Date.now()}-${Math.floor(Math.random() * 1000)
-      .toString()
-      .padStart(3, "0")}`;
+    const numero = await nextDocumentNumber(tx, "CMP", purchases, purchases.numero);
 
     const [purchase] = await tx
       .insert(purchases)

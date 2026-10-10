@@ -17,7 +17,9 @@ export const viewPaths: Record<View, string> = {
 };
 
 function viewFromPath(pathname: string): View {
-  const path = pathname.replace(/\/+$/, "") || "/";
+  let end = pathname.length;
+  while (end > 1 && pathname[end - 1] === "/") end--;
+  const path = pathname.slice(0, end) || "/";
   const match = (Object.entries(viewPaths) as Array<[View, string]>).find(([, p]) => p === path);
   return match?.[0] ?? "dashboard";
 }

@@ -1,8 +1,17 @@
 import { Elysia } from "elysia";
+import type ExcelJS from "exceljs";
 import { ZodError } from "zod";
 import { fallbackError, validationError } from "../../lib/http.js";
-import { requireAdmin } from "../auth/plugin.js";
+import { requireAdmin, requireAuth } from "../auth/plugin.js";
 import * as service from "./service.js";
+
+const XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+function excelResponse({ buffer, filename }: { buffer: ExcelJS.Buffer; filename: string }) {
+  return new Response(buffer, {
+    headers: { "Content-Type": XLSX_TYPE, "Content-Disposition": `attachment; filename="${filename}"` },
+  });
+}
 
 function handleError(error: unknown, set: { status?: number | string }) {
   if (error instanceof ZodError) return validationError(error, set);
@@ -10,6 +19,7 @@ function handleError(error: unknown, set: { status?: number | string }) {
 }
 
 export const reportsModule = new Elysia({ prefix: "/reports" })
+  .use(requireAuth)
   .use(requireAdmin)
   .get("/purchases", async ({ query, set }) => {
     try {
@@ -20,15 +30,7 @@ export const reportsModule = new Elysia({ prefix: "/reports" })
   })
   .get("/purchases/export", async ({ query, set }) => {
     try {
-      const { buffer, filename } = await service.exportPurchasesExcel(query);
-      set.headers["Content-Type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-      set.headers["Content-Disposition"] = `attachment; filename="${filename}"`;
-      return new Response(buffer as any, {
-        headers: {
-          "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          "Content-Disposition": `attachment; filename="${filename}"`,
-        },
-      });
+      return excelResponse(await service.exportPurchasesExcel(query));
     } catch (error) {
       return handleError(error, set);
     }
@@ -42,13 +44,7 @@ export const reportsModule = new Elysia({ prefix: "/reports" })
   })
   .get("/sales/export", async ({ query, set }) => {
     try {
-      const { buffer, filename } = await service.exportSalesExcel(query);
-      return new Response(buffer as any, {
-        headers: {
-          "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          "Content-Disposition": `attachment; filename="${filename}"`,
-        },
-      });
+      return excelResponse(await service.exportSalesExcel(query));
     } catch (error) {
       return handleError(error, set);
     }
@@ -62,13 +58,7 @@ export const reportsModule = new Elysia({ prefix: "/reports" })
   })
   .get("/inventory/export", async ({ query, set }) => {
     try {
-      const { buffer, filename } = await service.exportInventoryExcel(query);
-      return new Response(buffer as any, {
-        headers: {
-          "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          "Content-Disposition": `attachment; filename="${filename}"`,
-        },
-      });
+      return excelResponse(await service.exportInventoryExcel(query));
     } catch (error) {
       return handleError(error, set);
     }
@@ -82,13 +72,7 @@ export const reportsModule = new Elysia({ prefix: "/reports" })
   })
   .get("/products/export", async ({ query, set }) => {
     try {
-      const { buffer, filename } = await service.exportProductsExcel(query);
-      return new Response(buffer as any, {
-        headers: {
-          "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          "Content-Disposition": `attachment; filename="${filename}"`,
-        },
-      });
+      return excelResponse(await service.exportProductsExcel(query));
     } catch (error) {
       return handleError(error, set);
     }

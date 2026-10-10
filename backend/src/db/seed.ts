@@ -315,8 +315,7 @@ function formatCodePart(cantidad: number): string {
     return String(cantidad).padStart(3, "0");
   }
 
-  const normalized = cantidad.toString().replace(/\.?0+$/, "");
-  const [integerPart, decimalPart] = normalized.split(".");
+  const [integerPart, decimalPart] = cantidad.toString().split(".");
   return `${integerPart.padStart(3, "0")}.${decimalPart}`;
 }
 

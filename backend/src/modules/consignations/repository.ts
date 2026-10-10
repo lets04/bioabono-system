@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import {
   auditLogs,
@@ -12,6 +12,7 @@ import {
   sales,
   users,
 } from "../../db/schema/index.js";
+import { nextDocumentNumber } from "../../lib/documentNumber.js";
 import { adjustStock } from "../../lib/stock.js";
 import { derivedPriceCents, fromCents, toCents } from "../../lib/pricing.js";
 import type { ConsignationCreateInput, ConsignationLiquidateInput, ConsignationListFilters } from "./schema.js";
@@ -21,7 +22,7 @@ export async function listConsignations(filters: ConsignationListFilters) {
   const estado = filters.estado && filters.estado !== "todos" ? filters.estado : undefined;
 
   const conditions = [];
-  if (estado) conditions.push(eq(consignations.estado, estado as any));
+  if (estado) conditions.push(eq(consignations.estado, estado));
   if (term) conditions.push(or(ilike(consignations.numero, `%${term}%`), ilike(customers.nombre, `%${term}%`)));
 
   const rows = await db
@@ -37,7 +38,7 @@ export async function listConsignations(filters: ConsignationListFilters) {
     })
     .from(consignations)
     .leftJoin(customers, eq(consignations.clienteId, customers.id))
-    .where(conditions.length ? and(...conditions) : undefined)
+    .where(and(...conditions))
     .orderBy(desc(consignations.fechaEntrega), desc(consignations.id));
 
   if (rows.length === 0) return rows;
@@ -46,7 +47,7 @@ export async function listConsignations(filters: ConsignationListFilters) {
   const counts = await db
     .select({ consignacionId: consignmentDetails.consignacionId, count: sql<number>`count(*)::int` })
     .from(consignmentDetails)
-    .where(sql`${consignmentDetails.consignacionId} IN (${sql.join(ids.map((id) => sql`${id}`), sql`,`)})`)
+    .where(inArray(consignmentDetails.consignacionId, ids))
     .groupBy(consignmentDetails.consignacionId);
   const map = new Map(counts.map((c) => [c.consignacionId, c.count]));
 
@@ -123,9 +124,7 @@ export async function createConsignationWithTransaction(input: ConsignationCreat
     if (isNaN(fechaEntrega.getTime())) throw new Error("INVALID_DATE");
 
     const now = new Date();
-    const numero = `CSG-${Date.now()}-${Math.floor(Math.random() * 1000)
-      .toString()
-      .padStart(3, "0")}`;
+    const numero = await nextDocumentNumber(tx, "CSG", consignations, consignations.numero, now);
 
     const [consignation] = await tx
       .insert(consignations)
@@ -302,9 +301,7 @@ export async function liquidateConsignationWithTransaction(
       }
     }
 
-    const ventaNumero = `VTA-${Date.now()}-${Math.floor(Math.random() * 1000)
-      .toString()
-      .padStart(3, "0")}`;
+    const ventaNumero = await nextDocumentNumber(tx, "VTA", sales, sales.numero, now);
     const totalVenta = fromCents(subtotalVentaCents);
 
     const [sale] = await tx

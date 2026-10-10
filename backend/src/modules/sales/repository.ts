@@ -1,4 +1,4 @@
-import { asc, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import {
   consignations,
@@ -10,11 +10,13 @@ import {
   sales,
   auditLogs,
 } from "../../db/schema/index.js";
+import { nextDocumentNumber } from "../../lib/documentNumber.js";
 import { adjustStock } from "../../lib/stock.js";
-import { derivedPriceCents, fromCents } from "../../lib/pricing.js";
+import { derivedPriceCents, fromCents, type PriceType } from "../../lib/pricing.js";
 
 export async function listSales(search?: string) {
   const term = search?.trim();
+  const pattern = `%${term}%`;
   const rows = await db
     .select({
       id: sales.id,
@@ -36,9 +38,9 @@ export async function listSales(search?: string) {
     .where(
       term
         ? or(
-            ilike(sales.numero, `%${term}%`),
-            ilike(customers.nombre, `%${term}%`),
-            sql`${sales.id}::text ILIKE ${`%${term}%`}`,
+            ilike(sales.numero, pattern),
+            ilike(customers.nombre, pattern),
+            sql`${sales.id}::text ILIKE ${pattern}`,
           )
         : undefined,
     )
@@ -49,7 +51,7 @@ export async function listSales(search?: string) {
   const counts = await db
     .select({ ventaId: saleDetails.ventaId, count: sql<number>`count(*)::int` })
     .from(saleDetails)
-    .where(sql`${saleDetails.ventaId} IN (${sql.join(ids.map((id) => sql`${id}`), sql`,`)})`)
+    .where(inArray(saleDetails.ventaId, ids))
     .groupBy(saleDetails.ventaId);
   const map = new Map(counts.map((c) => [c.ventaId, c.count]));
   return rows.map((r) => ({ ...r, lineas: map.get(r.id) ?? 0 }));
@@ -110,9 +112,9 @@ export async function getSaleById(id: number) {
 export async function createSaleWithTransaction(input: {
   clienteId: number | null;
   fecha?: string | null;
-  tipoPrecio: string;
+  tipoPrecio: PriceType;
   observacion?: string | null;
-  detalles: Array<{ presentacionId: number; cantidad: number; descuentoPorcentaje: string; tipoPrecio?: string }>;
+  detalles: Array<{ presentacionId: number; cantidad: number; descuentoPorcentaje: string; tipoPrecio?: PriceType }>;
   usuarioId: number;
 }) {
   return db.transaction(async (tx) => {
@@ -125,7 +127,7 @@ export async function createSaleWithTransaction(input: {
     const enrichedDetalles: Array<{
       presentacionId: number;
       cantidad: number;
-      tipoPrecio: string;
+      tipoPrecio: PriceType;
       precioUnitario: string;
       descuentoPorcentaje: string;
       descuentoMonto: string;
@@ -169,9 +171,7 @@ export async function createSaleWithTransaction(input: {
       });
     }
 
-    const numero = `VTA-${Date.now()}-${Math.floor(Math.random() * 1000)
-      .toString()
-      .padStart(3, "0")}`;
+    const numero = await nextDocumentNumber(tx, "VTA", sales, sales.numero);
 
     const [sale] = await tx
       .insert(sales)
@@ -193,7 +193,7 @@ export async function createSaleWithTransaction(input: {
         ventaId: sale.id,
         presentacionId: det.presentacionId,
         cantidad: det.cantidad,
-        tipoPrecio: det.tipoPrecio as any,
+        tipoPrecio: det.tipoPrecio,
         precioUnitario: det.precioUnitario,
         descuentoPorcentaje: det.descuentoPorcentaje,
         descuentoMonto: det.descuentoMonto,

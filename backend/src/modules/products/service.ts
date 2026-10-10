@@ -3,15 +3,27 @@ import { generateCodigo } from "./repository.js";
 import { productCreateSchema, productUpdateSchema } from "./schema.js";
 import { derivedPrices } from "../../lib/pricing.js";
 
-function withDerivedPrices<T extends { pvp: string | number }>(pres: T) {
-  return { ...pres, preciosDerivados: derivedPrices(pres.pvp) };
-}
-
-function enrichProduct(product: any) {
+function enrichProduct<P extends { presentaciones: Array<{ pvp: string }> }>(product: P) {
   return {
     ...product,
-    presentaciones: (product.presentaciones ?? []).map((pres: any) => withDerivedPrices(pres)),
+    presentaciones: product.presentaciones.map((pres) => ({ ...pres, preciosDerivados: derivedPrices(pres.pvp) })),
   };
+}
+
+/**
+ * Genera el código de cada presentación (índice → código) y verifica que no exista
+ * en otra presentación ni se repita dentro de la misma solicitud.
+ */
+async function buildCodigoMap(abreviacion: string, presentaciones: Array<{ cantidad: string; id?: number }>) {
+  const codigoMap = new Map<number, string>();
+  for (const [idx, pres] of presentaciones.entries()) {
+    const codigo = generateCodigo(abreviacion, pres.cantidad);
+    const duplicate = await repository.getPresentationByCodigo(codigo, pres.id);
+    if (duplicate) throw new Error(`PRESENTATION_CODE_EXISTS:${codigo}`);
+    if ([...codigoMap.values()].includes(codigo)) throw new Error(`PRESENTATION_CODE_DUPLICATE_IN_REQUEST:${codigo}`);
+    codigoMap.set(idx, codigo);
+  }
+  return codigoMap;
 }
 
 export async function listProducts(search?: string, includeInactive?: boolean) {
@@ -32,58 +44,29 @@ export async function createProduct(body: unknown) {
   const duplicateAbrev = await repository.getProductByAbreviacion(abrevUpper);
   if (duplicateAbrev) throw new Error("PRODUCT_ABREVIACION_EXISTS");
 
-  // Generate codigos and check uniqueness
-  const codigoMap = new Map<number, string>();
-  for (let i = 0; i < input.presentaciones.length; i++) {
-    const pres = input.presentaciones[i];
-    const codigo = generateCodigo(abrevUpper, pres.cantidad);
-    const duplicateCodigo = await repository.getPresentationByCodigo(codigo);
-    if (duplicateCodigo) throw new Error(`PRESENTATION_CODE_EXISTS:${codigo}`);
-    // Also check duplicate within same request (same cantidad+unidad duplicate via unique index will catch, but checkCodigo duplicate for same abreviacion+cantidad with different unidades also collides on codigo)
-    if ([...codigoMap.values()].includes(codigo)) throw new Error(`PRESENTATION_CODE_DUPLICATE_IN_REQUEST:${codigo}`);
-    codigoMap.set(i, codigo);
-  }
+  const codigoMap = await buildCodigoMap(abrevUpper, input.presentaciones);
 
-  const productId = await repository.createProduct({ ...input, codigoMap } as any);
+  const productId = await repository.createProduct({ ...input, codigoMap });
   const product = await repository.getProductById(productId);
   if (!product) throw new Error("PRODUCT_CREATE_FAILED");
   return enrichProduct(product);
 }
 
 export async function updateProduct(id: number, body: unknown) {
-  await getProduct(id);
+  const current = await getProduct(id);
   const input = productUpdateSchema.parse(body);
 
-  let abrevUpper: string | undefined;
-  if (input.abreviacion) {
-    abrevUpper = input.abreviacion.toUpperCase();
+  const abrevUpper = input.abreviacion?.toUpperCase();
+  if (abrevUpper) {
     const duplicate = await repository.getProductByAbreviacion(abrevUpper, id);
     if (duplicate) throw new Error("PRODUCT_ABREVIACION_EXISTS");
   }
 
-  // If presentaciones are being updated, generate codigos for them
-  let codigoMap: Map<number, string> | undefined;
-  if (input.presentaciones && input.presentaciones.length > 0) {
-    // Need current product abreviacion if not changing
-    let effectiveAbrev = abrevUpper;
-    if (!effectiveAbrev) {
-      const current = await repository.getProductById(id);
-      effectiveAbrev = current!.abreviacion;
-    }
+  const codigoMap = input.presentaciones?.length
+    ? await buildCodigoMap(abrevUpper ?? current.abreviacion, input.presentaciones)
+    : undefined;
 
-    codigoMap = new Map();
-    for (let i = 0; i < input.presentaciones.length; i++) {
-      const pres: any = input.presentaciones[i];
-      const codigo = generateCodigo(effectiveAbrev!, pres.cantidad);
-      // Check global duplicate excluding current presentation id if updating
-      const duplicate = await repository.getPresentationByCodigo(codigo, pres.id);
-      if (duplicate) throw new Error(`PRESENTATION_CODE_EXISTS:${codigo}`);
-      if ([...codigoMap.values()].includes(codigo)) throw new Error(`PRESENTATION_CODE_DUPLICATE_IN_REQUEST:${codigo}`);
-      codigoMap.set(i, codigo);
-    }
-  }
-
-  await repository.updateProduct(id, { ...input, codigoMap } as any);
+  await repository.updateProduct(id, { ...input, codigoMap });
   const product = await repository.getProductById(id);
   if (!product) throw new Error("PRODUCT_NOT_FOUND");
   return enrichProduct(product);

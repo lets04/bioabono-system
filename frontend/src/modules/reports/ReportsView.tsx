@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BarChart3, Handshake, Package, ShoppingCart, Receipt, ClipboardList, Printer } from "lucide-react";
+import { Handshake, Package, ShoppingCart, Receipt, ClipboardList } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { PurchaseReport } from "./PurchaseReport";
 import { SalesReport } from "./SalesReport";

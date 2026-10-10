@@ -22,6 +22,42 @@ const shortcuts: Array<{ label: string; desc: string; icon: LucideIcon; view: Vi
   { label: "Reportes", desc: "Totales y exportación", icon: BarChart3, view: "reports" },
 ];
 
+type LowStockItem = Product["presentaciones"][number] & { productoNombre: string };
+
+function LowStockList({ items }: { items: LowStockItem[] }) {
+  if (items.length === 0) {
+    return <EmptyState icon={CheckCircle2} text="Todo en orden" hint="No hay presentaciones activas con stock bajo." />;
+  }
+
+  return (
+    <ul className="divide-y divide-stone-100">
+      {items.map((pres) => {
+        const pct = Math.min(100, Math.round((pres.stockActual / Math.max(pres.stockMinimo, 1)) * 100));
+        const empty = pres.stockActual <= 0;
+        return (
+          <li key={pres.id} className="grid gap-2 px-4 py-3 text-sm sm:grid-cols-[1fr_200px] sm:items-center sm:gap-6">
+            <div className="min-w-0">
+              <p className="truncate font-medium text-bio-dark">{pres.productoNombre}</p>
+              <p className="text-xs text-stone-500">
+                <span className="font-mono">{pres.codigo}</span> · {pres.cantidad} {pres.unidadMedida}
+              </p>
+            </div>
+            <div>
+              <div className="flex justify-between text-xs">
+                <span className={`font-semibold ${empty ? "text-red-600" : "text-amber-700"}`}>{empty ? "Sin stock" : `${pres.stockActual} unid.`}</span>
+                <span className="text-stone-500">mín. {pres.stockMinimo}</span>
+              </div>
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-stone-100">
+                <div className={`h-full rounded-full ${empty ? "bg-red-500" : "bg-amber-500"}`} style={{ width: `${Math.max(pct, 3)}%` }} />
+              </div>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 function greeting() {
   const hour = new Date().getHours();
   if (hour < 12) return "Buenos días";
@@ -39,6 +75,7 @@ export function DashboardView({ products, activeProducts, lowStock, isLoading, u
   const visibleShortcuts = shortcuts.filter((s) => availableViews.includes(s.view));
   const firstName = userName.trim().split(/\s+/)[0];
   const fmt = (n: number) => (isLoading ? "—" : n.toLocaleString("es-BO"));
+  const lowStockHint = lowStock > 0 ? "Requiere reposición" : "Todo en orden";
 
   return (
     <div className="grid gap-8">
@@ -56,7 +93,7 @@ export function DashboardView({ products, activeProducts, lowStock, isLoading, u
           value={fmt(lowStock)}
           icon={lowStock > 0 ? AlertTriangle : CheckCircle2}
           tone={lowStock > 0 ? "warning" : "default"}
-          hint={isLoading ? undefined : lowStock > 0 ? "Requiere reposición" : "Todo en orden"}
+          hint={isLoading ? undefined : lowStockHint}
           onClick={() => onNavigate("inventory")}
         />
         <MetricCard label="Categorías en uso" value={fmt(categories)} icon={FolderTree} />
@@ -107,34 +144,8 @@ export function DashboardView({ products, activeProducts, lowStock, isLoading, u
               <div key={i} className="h-8 animate-pulse rounded bg-stone-100" />
             ))}
           </div>
-        ) : lowStockPresentaciones.length === 0 ? (
-          <EmptyState icon={CheckCircle2} text="Todo en orden" hint="No hay presentaciones activas con stock bajo." />
         ) : (
-          <ul className="divide-y divide-stone-100">
-            {lowStockPresentaciones.slice(0, 8).map((pres) => {
-              const pct = Math.min(100, Math.round((pres.stockActual / Math.max(pres.stockMinimo, 1)) * 100));
-              const empty = pres.stockActual <= 0;
-              return (
-                <li key={pres.id} className="grid gap-2 px-4 py-3 text-sm sm:grid-cols-[1fr_200px] sm:items-center sm:gap-6">
-                  <div className="min-w-0">
-                    <p className="truncate font-medium text-bio-dark">{pres.productoNombre}</p>
-                    <p className="text-xs text-stone-500">
-                      <span className="font-mono">{pres.codigo}</span> · {pres.cantidad} {pres.unidadMedida}
-                    </p>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-xs">
-                      <span className={`font-semibold ${empty ? "text-red-600" : "text-amber-700"}`}>{empty ? "Sin stock" : `${pres.stockActual} unid.`}</span>
-                      <span className="text-stone-500">mín. {pres.stockMinimo}</span>
-                    </div>
-                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-stone-100">
-                      <div className={`h-full rounded-full ${empty ? "bg-red-500" : "bg-amber-500"}`} style={{ width: `${Math.max(pct, 3)}%` }} />
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          <LowStockList items={lowStockPresentaciones.slice(0, 8)} />
         )}
         {lowStockPresentaciones.length > 8 && (
           <button type="button" onClick={() => onNavigate("inventory")} className="w-full border-t border-stone-200 bg-stone-50 px-4 py-2.5 text-sm font-medium text-bio-green hover:bg-stone-100">

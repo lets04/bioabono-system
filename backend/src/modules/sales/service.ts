@@ -32,7 +32,7 @@ export async function createSale(body: unknown, usuarioId: number) {
       presentacionId: d.presentacionId,
       cantidad: d.cantidad,
       descuentoPorcentaje: String(d.descuentoPorcentaje ?? "0"),
-      tipoPrecio: (d as any).tipoPrecio,
+      tipoPrecio: d.tipoPrecio,
     })),
     usuarioId,
   });

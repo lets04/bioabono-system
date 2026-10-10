@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FormError } from "../../components/ui/FormError";
 import { FileSpreadsheet, Printer, Search } from "lucide-react";
 import { usePurchasesReport } from "../../hooks/useReports";
 import { useSuppliers } from "../../hooks/useSuppliers";
@@ -6,8 +7,9 @@ import { DataState } from "../../components/ui/DataState";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { money } from "../../utils/format";
 import { reportsApi } from "../../api/reports";
+import { useExcelExport } from "../../hooks/useExcelExport";
 import type { ReportFilters } from "../../types";
-import { ReportPrintPreview } from "../../components/print/ReportPrintPreview";
+import { ReportPrintPreview, ReportSummary } from "../../components/print/ReportPrintPreview";
 
 export function PurchaseReport() {
   const [from, setFrom] = useState("");
@@ -17,8 +19,6 @@ export function PurchaseReport() {
 
   const suppliersQuery = useSuppliers();
   const reportQuery = usePurchasesReport(applied);
-  const [exporting, setExporting] = useState(false);
-  const [exportError, setExportError] = useState<string | null>(null);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
 
   const apply = () => {
@@ -36,17 +36,7 @@ export function PurchaseReport() {
     setApplied({});
   };
 
-  const handleExport = async () => {
-    setExporting(true);
-    setExportError(null);
-    try {
-      await reportsApi.exportPurchases(applied);
-    } catch (e) {
-      setExportError(e instanceof Error && e.message ? e.message : "Error al exportar");
-    } finally {
-      setExporting(false);
-    }
-  };
+  const { exporting, exportError, handleExport } = useExcelExport(() => reportsApi.exportPurchases(applied));
 
   return (
     <div className="grid gap-4">
@@ -137,7 +127,7 @@ export function PurchaseReport() {
               </button>
             </div>
           </div>
-          {exportError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{exportError}</div>}
+          <FormError message={exportError} />
 
           <div className="overflow-hidden rounded-lg border border-stone-200 bg-white">
             <div className="bg-stone-50 px-4 py-2 text-xs font-semibold uppercase text-stone-500">Detalle — usa precio histórico de purchase_details</div>
@@ -182,7 +172,13 @@ export function PurchaseReport() {
               criteria={<><span className="font-semibold text-stone-700">Criterios de consulta:</span> Período: {from || "Todos"} al {to || "hoy"}{proveedorId ? ` — Proveedor: ${suppliersQuery.data?.find((supplier) => String(supplier.id) === proveedorId)?.nombre ?? ""}` : ""}</>}
               onClose={() => setShowPrintPreview(false)}
             >
-              <section className="mt-6"><h2 className="border-b border-stone-300 pb-2 text-sm font-bold uppercase tracking-wide text-stone-800">Resumen</h2><table className="mt-3 w-full border-collapse text-sm"><tbody><tr className="border-b border-stone-200"><td className="px-3 py-2">Cantidad de compras</td><td className="px-3 py-2 text-right font-semibold">{reportQuery.data.summary.cantidadCompras}</td></tr><tr className="border-b border-stone-200"><td className="px-3 py-2">Total comprado</td><td className="px-3 py-2 text-right font-semibold">{money(reportQuery.data.summary.totalCompras)}</td></tr><tr><td className="px-3 py-2">Proveedores en período</td><td className="px-3 py-2 text-right font-semibold">{reportQuery.data.summary.porProveedor.length}</td></tr></tbody></table></section>
+              <ReportSummary
+                rows={[
+                  ["Cantidad de compras", reportQuery.data.summary.cantidadCompras],
+                  ["Total comprado", money(reportQuery.data.summary.totalCompras)],
+                  ["Proveedores en período", reportQuery.data.summary.porProveedor.length],
+                ]}
+              />
               <section className="mt-7"><h2 className="border-b border-stone-300 pb-2 text-sm font-bold uppercase tracking-wide text-stone-800">Detalle de compras</h2><div className="mt-3 overflow-hidden border border-stone-300"><table className="w-full border-collapse text-sm"><thead><tr className="border-b-2 border-stone-400 bg-stone-100"><th className="px-3 py-2 text-left text-xs font-bold uppercase text-stone-700">Fecha</th><th className="px-3 py-2 text-left text-xs font-bold uppercase text-stone-700">N.º</th><th className="px-3 py-2 text-left text-xs font-bold uppercase text-stone-700">Proveedor</th><th className="px-3 py-2 text-left text-xs font-bold uppercase text-stone-700">Código</th><th className="px-3 py-2 text-left text-xs font-bold uppercase text-stone-700">Producto</th><th className="px-3 py-2 text-right text-xs font-bold uppercase text-stone-700">Cant.</th><th className="px-3 py-2 text-right text-xs font-bold uppercase text-stone-700">P. unit.</th><th className="px-3 py-2 text-right text-xs font-bold uppercase text-stone-700">Subtotal</th></tr></thead><tbody>{reportQuery.data.rows.map((row, index) => <tr key={`${row.id}-${row.presentacionId}-${index}`} className="border-b border-stone-200"><td className="px-3 py-2 text-xs">{new Date(row.fecha).toLocaleDateString("es-BO")}</td><td className="px-3 py-2 font-mono text-xs">{row.numero}</td><td className="px-3 py-2">{row.proveedorNombre}</td><td className="px-3 py-2 font-mono text-xs">{row.codigo}</td><td className="px-3 py-2">{row.productoNombre} {row.cantidadPresentacion} {row.unidadMedida}</td><td className="px-3 py-2 text-right">{row.cantidad}</td><td className="px-3 py-2 text-right">{money(row.precioUnitario)}</td><td className="px-3 py-2 text-right font-semibold">{money(row.detalleSubtotal)}</td></tr>)}</tbody></table></div>{reportQuery.data.rows.length === 0 ? <p className="border border-t-0 border-stone-300 p-8 text-center text-sm text-stone-500">No hay compras para el filtro aplicado.</p> : null}</section>
             </ReportPrintPreview>
           ) : null}

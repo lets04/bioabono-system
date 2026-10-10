@@ -1,6 +1,7 @@
 import { asc, eq, ilike, or } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { customers } from "../../db/schema/index.js";
+import { optionalTrimOrNull, trimOrNull } from "../../lib/validation.js";
 import type { CustomerCreateInput, CustomerUpdateInput } from "./schema.js";
 
 export async function listCustomers(search?: string) {
@@ -31,10 +32,10 @@ export async function createCustomer(input: CustomerCreateInput) {
     .insert(customers)
     .values({
       nombre: input.nombre,
-      nitCi: input.nitCi?.trim() ? input.nitCi.trim() : null,
-      telefono: input.telefono?.trim() ? input.telefono.trim() : null,
-      email: input.email?.trim() ? input.email.trim() : null,
-      direccion: input.direccion?.trim() ? input.direccion.trim() : null,
+      nitCi: trimOrNull(input.nitCi),
+      telefono: trimOrNull(input.telefono),
+      email: trimOrNull(input.email),
+      direccion: trimOrNull(input.direccion),
       activo: input.activo ?? true,
     })
     .returning();
@@ -46,10 +47,10 @@ export async function updateCustomer(id: number, input: CustomerUpdateInput) {
     .update(customers)
     .set({
       nombre: input.nombre,
-      nitCi: input.nitCi !== undefined ? (input.nitCi?.trim() ? input.nitCi.trim() : null) : undefined,
-      telefono: input.telefono !== undefined ? (input.telefono?.trim() ? input.telefono.trim() : null) : undefined,
-      email: input.email !== undefined ? (input.email?.trim() ? input.email.trim() : null) : undefined,
-      direccion: input.direccion !== undefined ? (input.direccion?.trim() ? input.direccion.trim() : null) : undefined,
+      nitCi: optionalTrimOrNull(input.nitCi),
+      telefono: optionalTrimOrNull(input.telefono),
+      email: optionalTrimOrNull(input.email),
+      direccion: optionalTrimOrNull(input.direccion),
       activo: input.activo,
       updatedAt: new Date(),
     })

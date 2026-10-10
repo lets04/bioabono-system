@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { CheckCircle2, Handshake } from "lucide-react";
 
 import { money } from "../../utils/format";
+import { FormError } from "../../components/ui/FormError";
 
 import type { ConsignationDetail } from "../../types";
 
@@ -39,10 +40,7 @@ export function ConsignationDetailView({
   const [vendidos, setVendidos] = useState<Record<number, string>>(
     () =>
       Object.fromEntries(
-        consignation.detalles.map((d) => [
-          d.presentacionId,
-          isPending ? String(d.cantidadVendida ?? 0) : String(d.cantidadVendida ?? 0),
-        ]),
+        consignation.detalles.map((d) => [d.presentacionId, String(d.cantidadVendida ?? 0)]),
       ),
   );
 
@@ -511,11 +509,7 @@ export function ConsignationDetailView({
           ERROR
       ====================================================== */}
 
-      {isPending && error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      {isPending && <FormError message={error} />}
 
       {/* ======================================================
           BOTÓN LIQUIDAR

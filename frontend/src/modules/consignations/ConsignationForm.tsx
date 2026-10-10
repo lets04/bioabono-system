@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Field, ReadonlyField } from "../../components/ui/Field";
+import { useLineItems } from "../../hooks/useLineItems";
+import { FormError } from "../../components/ui/FormError";
 import { PresentationSelect } from "../../components/ui/PresentationSelect";
 import { dateInputToISO, hasDuplicates, money, todayLocal } from "../../utils/format";
 import type { Customer, Product } from "../../types";
@@ -29,7 +31,7 @@ export function ConsignationForm({ customers, products, isSaving, error, onSubmi
   const [fechaEntrega, setFechaEntrega] = useState<string>(todayLocal);
   const [observacion, setObservacion] = useState<string>("");
   const [localError, setLocalError] = useState<string | null>(null);
-  const [lines, setLines] = useState<Line[]>([{ presentacionId: "", cantidadEntregada: "1" }]);
+  const { lines, updateLine, addLine, removeLine } = useLineItems<Line>(() => ({ presentacionId: "", cantidadEntregada: "1" }));
 
   const presentaciones = useMemo(() => {
     return products.flatMap((prod) =>
@@ -47,17 +49,6 @@ export function ConsignationForm({ customers, products, isSaving, error, onSubmi
         })),
     );
   }, [products]);
-
-  const updateLine = (idx: number, field: keyof Line, value: string) => {
-    setLines((cur) => {
-      const next = [...cur];
-      next[idx] = { ...next[idx], [field]: value };
-      return next;
-    });
-  };
-
-  const addLine = () => setLines((cur) => [...cur, { presentacionId: "", cantidadEntregada: "1" }]);
-  const removeLine = (idx: number) => setLines((cur) => (cur.length <= 1 ? cur : cur.filter((_, i) => i !== idx)));
 
   const totalReferencial = useMemo(() => {
     return lines.reduce((sum, l) => {
@@ -178,9 +169,7 @@ export function ConsignationForm({ customers, products, isSaving, error, onSubmi
         </div>
       </div>
 
-      {(localError ?? error) && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{localError ?? error}</div>
-      )}
+      <FormError message={localError ?? error} />
 
       <div className="form-actions">
         <button type="button" onClick={onCancel} className="btn-secondary px-5">

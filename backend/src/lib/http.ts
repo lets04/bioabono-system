@@ -41,3 +41,32 @@ export function fallbackError(error: unknown, set: SetLike, message = "No se pud
   set.status = 500;
   return { error: "INTERNAL_ERROR", message };
 }
+
+type ErrorSpec = { status: number; message: string | ((detail: string) => string) };
+export type ErrorMap = Record<string, ErrorSpec>;
+
+export const COMMON_ERRORS: ErrorMap = {
+  INVALID_ID: { status: 400, message: "Datos inválidos" },
+  INVALID_DATE: { status: 400, message: "Datos inválidos" },
+  UNAUTHORIZED: { status: 401, message: "No autenticado" },
+};
+
+/** Errores de las líneas de detalle; el servicio los lanza como "CODIGO:presentacionId". */
+export const PRESENTATION_ERRORS: ErrorMap = {
+  PRESENTATION_NOT_FOUND: { status: 404, message: (id) => `Presentación no encontrada: ${id}` },
+  PRESENTATION_INACTIVE: { status: 409, message: (id) => `Presentación inactiva: ${id}` },
+  STOCK_INSUFFICIENT: { status: 409, message: (id) => `Stock insuficiente para presentación ${id}` },
+};
+
+/** Traduce errores de dominio ("CODIGO" o "CODIGO:detalle") con el mapa; el resto va a fallbackError. */
+export function mapDomainError(error: unknown, set: SetLike, errors: ErrorMap) {
+  if (error instanceof Error) {
+    const [code, detail = ""] = error.message.split(":");
+    const spec = Object.hasOwn(errors, code) ? errors[code] : undefined;
+    if (spec) {
+      set.status = spec.status;
+      return { error: code, message: typeof spec.message === "function" ? spec.message(detail) : spec.message };
+    }
+  }
+  return fallbackError(error, set);
+}

@@ -2,7 +2,7 @@ import { and, eq, gte, sql } from "drizzle-orm";
 import type { Database } from "../db/index.js";
 import { productPresentations } from "../db/schema/index.js";
 
-type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];
+export type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];
 
 /**
  * Ajusta el stock de una presentación en un solo UPDATE atómico.

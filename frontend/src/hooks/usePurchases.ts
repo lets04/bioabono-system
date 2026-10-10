@@ -11,11 +11,3 @@ export function usePurchases(search = "") {
     placeholderData: keepPreviousData,
   });
 }
-
-export function usePurchase(id: number | null) {
-  return useQuery({
-    queryKey: ["purchase", id],
-    queryFn: () => purchasesApi.get(id!),
-    enabled: id !== null,
-  });
-}

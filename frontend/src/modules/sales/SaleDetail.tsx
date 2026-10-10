@@ -1,4 +1,4 @@
-import { money } from "../../utils/format";
+import { money, priceTypeLabel } from "../../utils/format";
 import type { SaleDetail } from "../../types";
 
 export function SaleDetailView({ sale, onPrint }: { sale: SaleDetail; onPrint: () => void }) {
@@ -57,7 +57,7 @@ export function SaleDetailView({ sale, onPrint }: { sale: SaleDetail; onPrint: (
                   </td>
                   <td className="px-4 py-3 text-right">{det.cantidad}</td>
                   <td className="px-4 py-3">
-                    <span className="rounded-full bg-stone-100 px-2 py-1 text-xs font-semibold text-stone-700">{det.tipoPrecio === "CONSIGNACION" ? "P CONS" : det.tipoPrecio === "CONTADO" ? "PVC" : det.tipoPrecio === "MAYORISTA" ? "PVM" : det.tipoPrecio}</span>
+                    <span className="rounded-full bg-stone-100 px-2 py-1 text-xs font-semibold text-stone-700">{priceTypeLabel(det.tipoPrecio)}</span>
                   </td>
                   <td className="px-4 py-3 text-right">{money(det.precioUnitario)}</td>
                   <td className="px-4 py-3 text-right">

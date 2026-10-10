@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Field } from "../../components/ui/Field";
+import { FormError } from "../../components/ui/FormError";
 import type { Supplier, SupplierFormState } from "../../types";
 
 type Props = {
@@ -82,7 +83,7 @@ export function SupplierForm({ supplier, isSaving, error, onSubmit }: Props) {
         Proveedor activo
       </label>
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      <FormError message={error} />
 
       <button
         disabled={isSaving}

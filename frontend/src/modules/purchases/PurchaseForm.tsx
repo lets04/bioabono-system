@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Field, ReadonlyField } from "../../components/ui/Field";
+import { useLineItems } from "../../hooks/useLineItems";
+import { FormError } from "../../components/ui/FormError";
 import { PresentationSelect } from "../../components/ui/PresentationSelect";
 import { dateInputToISO, money, todayLocal } from "../../utils/format";
 import type { Product, Supplier } from "../../types";
@@ -24,7 +26,7 @@ export function PurchaseForm({ suppliers, products, isSaving, error, onSubmit, o
   const [proveedorId, setProveedorId] = useState<string>("");
   const [fecha, setFecha] = useState<string>(todayLocal);
   const [observacion, setObservacion] = useState<string>("");
-  const [lines, setLines] = useState<Line[]>([{ presentacionId: "", cantidad: "1", precioUnitario: "0" }]);
+  const { lines, updateLine, addLine, removeLine } = useLineItems<Line>(() => ({ presentacionId: "", cantidad: "1", precioUnitario: "0" }));
 
   const presentaciones = useMemo(() => {
     return products.flatMap((prod) =>
@@ -41,17 +43,6 @@ export function PurchaseForm({ suppliers, products, isSaving, error, onSubmit, o
         })),
     );
   }, [products]);
-
-  const updateLine = (idx: number, field: keyof Line, value: string) => {
-    setLines((cur) => {
-      const next = [...cur];
-      next[idx] = { ...next[idx], [field]: value };
-      return next;
-    });
-  };
-
-  const addLine = () => setLines((cur) => [...cur, { presentacionId: "", cantidad: "1", precioUnitario: "0" }]);
-  const removeLine = (idx: number) => setLines((cur) => (cur.length <= 1 ? cur : cur.filter((_, i) => i !== idx)));
 
   const subtotal = useMemo(() => {
     return lines.reduce((sum, l) => {
@@ -177,7 +168,7 @@ export function PurchaseForm({ suppliers, products, isSaving, error, onSubmit, o
         </div>
       </div>
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      <FormError message={error} />
 
       <div className="form-actions">
         <button type="button" onClick={onCancel} className="btn-secondary px-5">

@@ -4,7 +4,7 @@ import { app } from "./app.js";
 import { env } from "./config/env.js";
 
 // CORS solo para orígenes declarados en CORS_ORIGINS. En desarrollo el proxy de Vite sirve
-// todo desde el mismo origen y no hace falta.
+// el frontend y la API desde el mismo origen y no hace falta.
 function corsHeaders(origin: string | null): Record<string, string> | null {
   if (!origin || !env.corsOrigins.includes(origin)) return null;
   return {

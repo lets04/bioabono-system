@@ -1,13 +1,5 @@
 import { z } from "zod";
-
-const numericString = z
-  .union([z.string(), z.number()])
-  .transform((v) => String(v).trim())
-  .refine((v) => v !== "" && Number.isFinite(Number(v)), "Debe ser un número válido");
-
-const uniquePresentations = <T extends { presentacionId: number }>(items: T[]) =>
-  new Set(items.map((d) => d.presentacionId)).size === items.length;
-const DUPLICATE_MSG = "No se puede repetir la misma presentación en varias líneas";
+import { DUPLICATE_PRESENTATION_MSG as DUPLICATE_MSG, uniquePresentations } from "../../lib/validation.js";
 
 export const consignationCreateSchema = z.object({
   clienteId: z.number().int().positive("El cliente es obligatorio"),
@@ -45,5 +37,3 @@ export const consignationListSchema = z.object({
 export type ConsignationCreateInput = z.infer<typeof consignationCreateSchema>;
 export type ConsignationLiquidateInput = z.infer<typeof consignationLiquidateSchema>;
 export type ConsignationListFilters = z.infer<typeof consignationListSchema>;
-
-export const numericStringSchema = numericString;

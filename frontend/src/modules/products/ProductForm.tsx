@@ -1,6 +1,7 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Field } from "../../components/ui/Field";
+import { FormError } from "../../components/ui/FormError";
 import { CategorySelect } from "../../components/ui/CategorySelect";
 import { money } from "../../utils/format";
 import { derivedPrices, previewCodigo, productToForm, productUnits } from "../../utils/product";
@@ -167,7 +168,7 @@ export function ProductForm({ product, categories, isSaving, error, onSubmit }: 
         </p>
       </div>
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      <FormError message={error} />
 
       <button disabled={isSaving} className="btn-primary">
         {isSaving ? "Guardando..." : "Guardar producto"}

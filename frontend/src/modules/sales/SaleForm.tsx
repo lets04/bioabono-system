@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Field, ReadonlyField } from "../../components/ui/Field";
+import { useLineItems } from "../../hooks/useLineItems";
+import { FormError } from "../../components/ui/FormError";
 import { PresentationSelect } from "../../components/ui/PresentationSelect";
 import { dateInputToISO, hasDuplicates, money, todayLocal } from "../../utils/format";
 import type { Customer, Product } from "../../types";
@@ -33,10 +35,10 @@ const toCents = (value: string | number) => Math.round(Number(value) * 100);
 export function SaleForm({ customers, products, isSaving, error, onSubmit, onCancel }: Props) {
   const [clienteId, setClienteId] = useState<string>("");
   const [fecha, setFecha] = useState<string>(todayLocal);
-  const [tipoPrecio, setTipoPrecio] = useState<"PVP" | "CONTADO" | "MAYORISTA">("PVP");
+  const [tipoPrecio, setTipoPrecio] = useState<TipoPrecio>("PVP");
   const [observacion, setObservacion] = useState<string>("");
   const [localError, setLocalError] = useState<string | null>(null);
-  const [lines, setLines] = useState<Line[]>([{ presentacionId: "", cantidad: "1", descuentoPorcentaje: "0" }]);
+  const { lines, updateLine, addLine, removeLine } = useLineItems<Line>(() => ({ presentacionId: "", cantidad: "1", descuentoPorcentaje: "0" }));
 
   const presentaciones = useMemo(() => {
     return products.flatMap((prod) =>
@@ -64,16 +66,6 @@ export function SaleForm({ customers, products, isSaving, error, onSubmit, onCan
     [presentaciones, tipoPrecio],
   );
 
-  const updateLine = (idx: number, field: keyof Line, value: string) => {
-    setLines((cur) => {
-      const next = [...cur];
-      next[idx] = { ...next[idx], [field]: value };
-      return next;
-    });
-  };
-
-  const addLine = () => setLines((cur) => [...cur, { presentacionId: "", cantidad: "1", descuentoPorcentaje: "0" }]);
-  const removeLine = (idx: number) => setLines((cur) => (cur.length <= 1 ? cur : cur.filter((_, i) => i !== idx)));
 
   const totals = useMemo(() => {
     // En centavos, igual que el backend, para que la vista previa coincida con lo guardado.
@@ -148,7 +140,7 @@ export function SaleForm({ customers, products, isSaving, error, onSubmit, onCan
           <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className="input" />
         </Field>
         <Field label="Tipo de precio">
-          <select value={tipoPrecio} onChange={(e) => setTipoPrecio(e.target.value as any)} className="input">
+          <select value={tipoPrecio} onChange={(e) => setTipoPrecio(e.target.value as TipoPrecio)} className="input">
             <option value="PVP">PVP</option>
             <option value="CONTADO">PVC (×0.75)</option>
             <option value="MAYORISTA">PVM (×0.70)</option>
@@ -236,9 +228,7 @@ export function SaleForm({ customers, products, isSaving, error, onSubmit, onCan
         </div>
       </div>
 
-      {(localError ?? error) && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{localError ?? error}</div>
-      )}
+      <FormError message={localError ?? error} />
 
       <div className="form-actions">
         <button type="button" onClick={onCancel} className="btn-secondary px-5">

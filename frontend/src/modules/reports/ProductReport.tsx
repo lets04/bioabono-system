@@ -1,14 +1,30 @@
 import type { ReportFilters } from "../../types";
+import { FormError } from "../../components/ui/FormError";
 import { useState } from "react";
 import { FileSpreadsheet, Printer, Search } from "lucide-react";
 import { useProductsReport } from "../../hooks/useReports";
 import { useCategories } from "../../hooks/useCategories";
 import { DataState } from "../../components/ui/DataState";
 import { EmptyState } from "../../components/ui/EmptyState";
-import { money } from "../../utils/format";
+import { money, stockStatusLabel } from "../../utils/format";
 import { reportsApi } from "../../api/reports";
-import { ReportPrintPreview } from "../../components/print/ReportPrintPreview";
+import { useExcelExport } from "../../hooks/useExcelExport";
+import { ReportPrintPreview, ReportSummary } from "../../components/print/ReportPrintPreview";
 import { CategorySelect } from "../../components/ui/CategorySelect";
+
+type ProductStatus = "Inactivo" | "Sin stock" | "Bajo" | "Normal";
+
+const statusBadges: Record<ProductStatus, string> = {
+  Inactivo: "bg-stone-200 text-stone-600",
+  "Sin stock": "bg-red-100 text-red-800",
+  Bajo: "bg-amber-100 text-amber-800",
+  Normal: "bg-emerald-100 text-emerald-800",
+};
+
+function productStatus(row: { activo: boolean; productoActivo: boolean; stockActual: number; stockMinimo: number }): ProductStatus {
+  if (!row.activo || !row.productoActivo) return "Inactivo";
+  return stockStatusLabel(row.stockActual, row.stockMinimo, "Bajo");
+}
 
 export function ProductReport() {
   const [categoriaId, setCategoriaId] = useState("");
@@ -17,8 +33,6 @@ export function ProductReport() {
 
   const categoriesQuery = useCategories();
   const reportQuery = useProductsReport(applied);
-  const [exporting, setExporting] = useState(false);
-  const [exportError, setExportError] = useState<string | null>(null);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
 
   const apply = () => setApplied({ categoriaId: categoriaId || undefined, estado: estado || undefined });
@@ -27,17 +41,7 @@ export function ProductReport() {
     setEstado("");
     setApplied({});
   };
-  const handleExport = async () => {
-    setExporting(true);
-    setExportError(null);
-    try {
-      await reportsApi.exportProducts(applied);
-    } catch (e) {
-      setExportError(e instanceof Error && e.message ? e.message : "Error al exportar");
-    } finally {
-      setExporting(false);
-    }
-  };
+  const { exporting, exportError, handleExport } = useExcelExport(() => reportsApi.exportProducts(applied));
 
   return (
     <div className="grid gap-4">
@@ -100,7 +104,7 @@ export function ProductReport() {
               </button>
             </div>
           </div>
-          {exportError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{exportError}</div>}
+          <FormError message={exportError} />
 
           <div className="overflow-hidden rounded-lg border border-stone-200 bg-white">
             <div className="bg-stone-50 px-4 py-2 text-xs font-semibold uppercase text-stone-500">Presentaciones agrupadas por producto base</div>
@@ -121,15 +125,8 @@ export function ProductReport() {
                 </thead>
                 <tbody className="table-body divide-y divide-stone-100">
                   {reportQuery.data.rows.map((r) => {
-                    const estado = !r.activo || !r.productoActivo ? "Inactivo" : r.stockActual === 0 ? "Sin stock" : r.stockActual <= r.stockMinimo ? "Bajo" : "Normal";
-                    const badge =
-                      estado === "Inactivo"
-                        ? "bg-stone-200 text-stone-600"
-                        : estado === "Sin stock"
-                          ? "bg-red-100 text-red-800"
-                          : estado === "Bajo"
-                            ? "bg-amber-100 text-amber-800"
-                            : "bg-emerald-100 text-emerald-800";
+                    const estado = productStatus(r);
+                    const badge = statusBadges[estado];
                     return (
                       <tr key={r.id}>
                         <td className="px-4 py-2 font-mono text-xs font-semibold text-bio-dark">{r.codigo}</td>
@@ -158,8 +155,15 @@ export function ProductReport() {
           </div>
           {showPrintPreview ? (
             <ReportPrintPreview title="REPORTE DE PRODUCTOS" criteria={<><span className="font-semibold text-stone-700">Criterios de consulta:</span> {categoriaId ? `Categoría: ${categoriesQuery.data?.find((category) => String(category.id) === categoriaId)?.nombre ?? ""}` : "Todas las categorías"}{estado ? ` — Estado: ${estado}` : ""}</>} onClose={() => setShowPrintPreview(false)}>
-              <section className="mt-6"><h2 className="border-b border-stone-300 pb-2 text-sm font-bold uppercase tracking-wide text-stone-800">Resumen</h2><table className="mt-3 w-full border-collapse text-sm"><tbody><tr className="border-b border-stone-200"><td className="px-3 py-2">Productos base</td><td className="px-3 py-2 text-right font-semibold">{reportQuery.data.summary.totalProductos}</td></tr><tr className="border-b border-stone-200"><td className="px-3 py-2">Presentaciones</td><td className="px-3 py-2 text-right font-semibold">{reportQuery.data.summary.totalPresentaciones}</td></tr><tr className="border-b border-stone-200"><td className="px-3 py-2">Sin stock</td><td className="px-3 py-2 text-right font-semibold">{reportQuery.data.summary.sinStock}</td></tr><tr><td className="px-3 py-2">Stock bajo</td><td className="px-3 py-2 text-right font-semibold">{reportQuery.data.summary.bajoStock}</td></tr></tbody></table></section>
-              <section className="mt-7"><h2 className="border-b border-stone-300 pb-2 text-sm font-bold uppercase tracking-wide text-stone-800">Detalle de productos</h2><div className="mt-3 overflow-hidden border border-stone-300"><table className="w-full border-collapse text-[10px]"><thead><tr className="border-b-2 border-stone-400 bg-stone-100"><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Código</th><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Producto</th><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Categoría</th><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Presentación</th><th className="px-2 py-2 text-right font-bold uppercase text-stone-700">PVP</th><th className="px-2 py-2 text-right font-bold uppercase text-stone-700">Últ. compra</th><th className="px-2 py-2 text-right font-bold uppercase text-stone-700">Stock</th><th className="px-2 py-2 text-right font-bold uppercase text-stone-700">Mín.</th><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Estado</th></tr></thead><tbody>{reportQuery.data.rows.map((row) => { const rowStatus = !row.activo || !row.productoActivo ? "Inactivo" : row.stockActual === 0 ? "Sin stock" : row.stockActual <= row.stockMinimo ? "Bajo" : "Normal"; return <tr key={row.id} className="border-b border-stone-200"><td className="px-2 py-2 font-mono">{row.codigo}</td><td className="px-2 py-2">{row.productoNombre}<span className="block text-stone-500">{row.productoAbreviacion}</span></td><td className="px-2 py-2">{row.categoriaNombre ?? "—"}</td><td className="px-2 py-2">{row.cantidad} {row.unidadMedida}</td><td className="px-2 py-2 text-right">{money(row.pvp)}</td><td className="px-2 py-2 text-right">{row.ultimoPrecioCompra ? money(row.ultimoPrecioCompra) : "—"}</td><td className="px-2 py-2 text-right font-semibold">{row.stockActual}</td><td className="px-2 py-2 text-right">{row.stockMinimo}</td><td className="px-2 py-2">{rowStatus}</td></tr>; })}</tbody></table></div>{reportQuery.data.rows.length === 0 ? <p className="border border-t-0 border-stone-300 p-8 text-center text-sm text-stone-500">No hay productos para el filtro aplicado.</p> : null}</section>
+              <ReportSummary
+                rows={[
+                  ["Productos base", reportQuery.data.summary.totalProductos],
+                  ["Presentaciones", reportQuery.data.summary.totalPresentaciones],
+                  ["Sin stock", reportQuery.data.summary.sinStock],
+                  ["Stock bajo", reportQuery.data.summary.bajoStock],
+                ]}
+              />
+              <section className="mt-7"><h2 className="border-b border-stone-300 pb-2 text-sm font-bold uppercase tracking-wide text-stone-800">Detalle de productos</h2><div className="mt-3 overflow-hidden border border-stone-300"><table className="w-full border-collapse text-[10px]"><thead><tr className="border-b-2 border-stone-400 bg-stone-100"><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Código</th><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Producto</th><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Categoría</th><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Presentación</th><th className="px-2 py-2 text-right font-bold uppercase text-stone-700">PVP</th><th className="px-2 py-2 text-right font-bold uppercase text-stone-700">Últ. compra</th><th className="px-2 py-2 text-right font-bold uppercase text-stone-700">Stock</th><th className="px-2 py-2 text-right font-bold uppercase text-stone-700">Mín.</th><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Estado</th></tr></thead><tbody>{reportQuery.data.rows.map((row) => { const rowStatus = productStatus(row); return <tr key={row.id} className="border-b border-stone-200"><td className="px-2 py-2 font-mono">{row.codigo}</td><td className="px-2 py-2">{row.productoNombre}<span className="block text-stone-500">{row.productoAbreviacion}</span></td><td className="px-2 py-2">{row.categoriaNombre ?? "—"}</td><td className="px-2 py-2">{row.cantidad} {row.unidadMedida}</td><td className="px-2 py-2 text-right">{money(row.pvp)}</td><td className="px-2 py-2 text-right">{row.ultimoPrecioCompra ? money(row.ultimoPrecioCompra) : "—"}</td><td className="px-2 py-2 text-right font-semibold">{row.stockActual}</td><td className="px-2 py-2 text-right">{row.stockMinimo}</td><td className="px-2 py-2">{rowStatus}</td></tr>; })}</tbody></table></div>{reportQuery.data.rows.length === 0 ? <p className="border border-t-0 border-stone-300 p-8 text-center text-sm text-stone-500">No hay productos para el filtro aplicado.</p> : null}</section>
             </ReportPrintPreview>
           ) : null}
         </>

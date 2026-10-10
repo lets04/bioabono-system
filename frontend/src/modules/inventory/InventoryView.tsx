@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, PackageX } from "lucide-react";
+import { AlertTriangle, CheckCircle2, PackageX, type LucideIcon } from "lucide-react";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { DataState } from "../../components/ui/DataState";
 import { SearchInput } from "../../components/ui/SearchInput";
@@ -11,6 +11,28 @@ type Props = {
 };
 
 type Filter = "all" | "low" | "out";
+
+type StockRow = { stockActual: number; stockMinimo: number };
+
+const filterMatches: Record<Filter, (row: StockRow) => boolean> = {
+  all: () => true,
+  low: (row) => row.stockActual <= row.stockMinimo,
+  out: (row) => row.stockActual <= 0,
+};
+
+type Level = "out" | "low" | "ok";
+
+const levelStyles: Record<Level, { bar: string; text: string; badge: string; icon: LucideIcon; label: string }> = {
+  out: { bar: "bg-red-500", text: "text-red-600", badge: "bg-red-100 text-red-700", icon: PackageX, label: "Sin stock" },
+  low: { bar: "bg-amber-500", text: "text-amber-700", badge: "bg-amber-100 text-amber-800", icon: AlertTriangle, label: "Stock bajo" },
+  ok: { bar: "bg-emerald-500", text: "text-stone-800", badge: "bg-emerald-100 text-emerald-800", icon: CheckCircle2, label: "Suficiente" },
+};
+
+function stockLevel(row: StockRow): Level {
+  if (filterMatches.out(row)) return "out";
+  if (filterMatches.low(row)) return "low";
+  return "ok";
+}
 
 export function InventoryView({ products, isLoading }: Props) {
   const [search, setSearch] = useState("");
@@ -37,8 +59,8 @@ export function InventoryView({ products, isLoading }: Props) {
   const counts = useMemo(
     () => ({
       all: all.length,
-      low: all.filter((r) => r.stockActual <= r.stockMinimo).length,
-      out: all.filter((r) => r.stockActual <= 0).length,
+      low: all.filter(filterMatches.low).length,
+      out: all.filter(filterMatches.out).length,
     }),
     [all],
   );
@@ -47,7 +69,7 @@ export function InventoryView({ products, isLoading }: Props) {
     const term = search.toLowerCase();
     return all
       .filter((r) => `${r.codigo} ${r.nombre} ${r.abreviacion}`.toLowerCase().includes(term))
-      .filter((r) => (filter === "low" ? r.stockActual <= r.stockMinimo : filter === "out" ? r.stockActual <= 0 : true))
+      .filter(filterMatches[filter])
       .sort((a, b) => a.stockActual / Math.max(a.stockMinimo, 1) - b.stockActual / Math.max(b.stockMinimo, 1));
   }, [all, search, filter]);
 
@@ -98,8 +120,9 @@ export function InventoryView({ products, isLoading }: Props) {
               </thead>
               <tbody className="table-body divide-y divide-stone-100">
                 {rows.map((row) => {
-                  const out = row.stockActual <= 0;
-                  const low = row.stockActual <= row.stockMinimo;
+                  const level = stockLevel(row);
+                  const style = levelStyles[level];
+                  const LevelIcon = style.icon;
                   // La barra llena equivale al doble del mínimo: deja ver holgura sin perder la escala.
                   const pct = Math.min(100, Math.round((row.stockActual / Math.max(row.stockMinimo * 2, 1)) * 100));
                   return (
@@ -115,21 +138,17 @@ export function InventoryView({ products, isLoading }: Props) {
                       <td className="px-4 py-3">
                         <div className="h-1.5 w-32 overflow-hidden rounded-full bg-stone-100" aria-hidden="true">
                           <div
-                            className={`h-full rounded-full ${out ? "bg-red-500" : low ? "bg-amber-500" : "bg-emerald-500"}`}
-                            style={{ width: `${out ? 0 : Math.max(pct, 4)}%` }}
+                            className={`h-full rounded-full ${style.bar}`}
+                            style={{ width: `${level === "out" ? 0 : Math.max(pct, 4)}%` }}
                           />
                         </div>
                       </td>
-                      <td className={`px-4 py-3 text-right font-semibold ${out ? "text-red-600" : low ? "text-amber-700" : "text-stone-800"}`}>{row.stockActual}</td>
+                      <td className={`px-4 py-3 text-right font-semibold ${style.text}`}>{row.stockActual}</td>
                       <td className="px-4 py-3 text-right text-stone-500">{row.stockMinimo}</td>
                       <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                            out ? "bg-red-100 text-red-700" : low ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
-                          }`}
-                        >
-                          {out ? <PackageX size={14} /> : low ? <AlertTriangle size={14} /> : <CheckCircle2 size={14} />}
-                          {out ? "Sin stock" : low ? "Stock bajo" : "Suficiente"}
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${style.badge}`}>
+                          <LevelIcon size={14} />
+                          {style.label}
                         </span>
                       </td>
                     </tr>

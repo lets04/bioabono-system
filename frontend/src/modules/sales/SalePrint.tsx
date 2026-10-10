@@ -1,4 +1,4 @@
-import { money } from "../../utils/format";
+import { money, priceTypeLabel } from "../../utils/format";
 import { PrintPreview } from "../../components/print/PrintPreview";
 import { PrintFooter, PrintHeader } from "../../components/print/PrintHeader";
 import type { SaleDetail } from "../../types";
@@ -61,13 +61,7 @@ export function SalePrint({ sale, onClose }: { sale: SaleDetail; onClose: () => 
                   </td>
                   <td className="px-3 py-2 text-right font-semibold text-stone-700">{det.cantidad}</td>
                   <td className="px-3 py-2 text-xs text-stone-700">
-                    {det.tipoPrecio === "CONSIGNACION"
-                      ? "P CONS"
-                      : det.tipoPrecio === "CONTADO"
-                        ? "PVC"
-                        : det.tipoPrecio === "MAYORISTA"
-                          ? "PVM"
-                          : det.tipoPrecio}
+                    {priceTypeLabel(det.tipoPrecio)}
                   </td>
                   <td className="px-3 py-2 text-right text-stone-700">{money(det.precioUnitario)}</td>
                   <td className="px-3 py-2 text-right text-xs text-stone-700">

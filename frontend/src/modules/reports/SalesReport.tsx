@@ -1,13 +1,15 @@
 import type { ReportFilters } from "../../types";
+import { FormError } from "../../components/ui/FormError";
 import { useState } from "react";
 import { FileSpreadsheet, Printer, Search } from "lucide-react";
 import { useSalesReport } from "../../hooks/useReports";
 import { useCustomers } from "../../hooks/useCustomers";
 import { DataState } from "../../components/ui/DataState";
 import { EmptyState } from "../../components/ui/EmptyState";
-import { money } from "../../utils/format";
+import { money, priceTypeLabel } from "../../utils/format";
 import { reportsApi } from "../../api/reports";
-import { ReportPrintPreview } from "../../components/print/ReportPrintPreview";
+import { useExcelExport } from "../../hooks/useExcelExport";
+import { ReportPrintPreview, ReportSummary } from "../../components/print/ReportPrintPreview";
 
 export function SalesReport() {
   const [from, setFrom] = useState("");
@@ -18,8 +20,6 @@ export function SalesReport() {
 
   const customersQuery = useCustomers();
   const reportQuery = useSalesReport(applied);
-  const [exporting, setExporting] = useState(false);
-  const [exportError, setExportError] = useState<string | null>(null);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
 
   const apply = () =>
@@ -36,17 +36,9 @@ export function SalesReport() {
     setTipoPrecio("");
     setApplied({});
   };
-  const handleExport = async () => {
-    setExporting(true);
-    setExportError(null);
-    try {
-      await reportsApi.exportSales(applied);
-    } catch (e) {
-      setExportError(e instanceof Error && e.message ? e.message : "Error al exportar");
-    } finally {
-      setExporting(false);
-    }
-  };
+  const { exporting, exportError, handleExport } = useExcelExport(() => reportsApi.exportSales(applied));
+  const clienteLabel =
+    clienteId === "null" ? "Mostrador" : (customersQuery.data?.find((customer) => String(customer.id) === clienteId)?.nombre ?? "");
 
   return (
     <div className="grid gap-4">
@@ -124,7 +116,7 @@ export function SalesReport() {
               </button>
             </div>
           </div>
-          {exportError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{exportError}</div>}
+          <FormError message={exportError} />
 
           <div className="overflow-hidden rounded-lg border border-stone-200 bg-white">
             <div className="bg-stone-50 px-4 py-2 text-xs font-semibold uppercase text-stone-500">Detalle — precio histórico de sale_details</div>
@@ -159,7 +151,7 @@ export function SalesReport() {
                       </td>
                       <td className="px-3 py-2 text-right">{r.cantidad}</td>
                       <td className="px-3 py-2">
-                        <span className="rounded bg-stone-100 px-1.5 py-0.5 text-xs">{r.tipoPrecio === "CONSIGNACION" ? "P CONS" : r.tipoPrecio === "CONTADO" ? "PVC" : r.tipoPrecio === "MAYORISTA" ? "PVM" : r.tipoPrecio}</span>
+                        <span className="rounded bg-stone-100 px-1.5 py-0.5 text-xs">{priceTypeLabel(r.tipoPrecio)}</span>
                       </td>
                       <td className="px-3 py-2 text-right">{money(r.precioUnitario)}</td>
                       <td className="px-3 py-2 text-right text-xs">{Number(r.descuentoPorcentaje) > 0 ? `${r.descuentoPorcentaje}%` : "—"}</td>
@@ -172,9 +164,16 @@ export function SalesReport() {
             {reportQuery.data.rows.length === 0 && <EmptyState text="No hay ventas para el filtro aplicado." />}
           </div>
           {showPrintPreview ? (
-            <ReportPrintPreview title="REPORTE DE VENTAS" criteria={<><span className="font-semibold text-stone-700">Criterios de consulta:</span> Período: {from || "Todos"} al {to || "hoy"}{clienteId ? ` — Cliente: ${clienteId === "null" ? "Mostrador" : customersQuery.data?.find((customer) => String(customer.id) === clienteId)?.nombre ?? ""}` : ""}{tipoPrecio ? ` — Tipo: ${tipoPrecio === "CONSIGNACION" ? "P CONS" : tipoPrecio}` : ""}</>} onClose={() => setShowPrintPreview(false)}>
-              <section className="mt-6"><h2 className="border-b border-stone-300 pb-2 text-sm font-bold uppercase tracking-wide text-stone-800">Resumen</h2><table className="mt-3 w-full border-collapse text-sm"><tbody><tr className="border-b border-stone-200"><td className="px-3 py-2">Cantidad de ventas</td><td className="px-3 py-2 text-right font-semibold">{reportQuery.data.summary.cantidadVentas}</td></tr><tr className="border-b border-stone-200"><td className="px-3 py-2">Unidades vendidas</td><td className="px-3 py-2 text-right font-semibold">{reportQuery.data.summary.unidadesVendidas}</td></tr><tr className="border-b border-stone-200"><td className="px-3 py-2">Total descuentos</td><td className="px-3 py-2 text-right font-semibold">{money(reportQuery.data.summary.totalDescuentos)}</td></tr><tr><td className="px-3 py-2">Total ventas</td><td className="px-3 py-2 text-right font-semibold">{money(reportQuery.data.summary.totalVentas)}</td></tr></tbody></table></section>
-              <section className="mt-7"><h2 className="border-b border-stone-300 pb-2 text-sm font-bold uppercase tracking-wide text-stone-800">Detalle de ventas</h2><div className="mt-3 overflow-hidden border border-stone-300"><table className="w-full border-collapse text-[10px]"><thead><tr className="border-b-2 border-stone-400 bg-stone-100"><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Fecha</th><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">N.º</th><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Cliente</th><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Código</th><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Producto</th><th className="px-2 py-2 text-right font-bold uppercase text-stone-700">Cant.</th><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Tipo</th><th className="px-2 py-2 text-right font-bold uppercase text-stone-700">P. unit.</th><th className="px-2 py-2 text-right font-bold uppercase text-stone-700">Desc.</th><th className="px-2 py-2 text-right font-bold uppercase text-stone-700">Subtotal</th></tr></thead><tbody>{reportQuery.data.rows.map((row, index) => <tr key={`${row.id}-${row.presentacionId}-${index}`} className="border-b border-stone-200"><td className="px-2 py-2">{new Date(row.fecha).toLocaleDateString("es-BO")}</td><td className="px-2 py-2 font-mono">{row.numero}</td><td className="px-2 py-2">{row.clienteNombre ?? "Mostrador"}</td><td className="px-2 py-2 font-mono">{row.codigo}</td><td className="px-2 py-2">{row.productoNombre} {row.cantidadPresentacion} {row.unidadMedida}</td><td className="px-2 py-2 text-right">{row.cantidad}</td><td className="px-2 py-2">{row.tipoPrecio === "CONSIGNACION" ? "P CONS" : row.tipoPrecio === "CONTADO" ? "PVC" : row.tipoPrecio === "MAYORISTA" ? "PVM" : row.tipoPrecio}</td><td className="px-2 py-2 text-right">{money(row.precioUnitario)}</td><td className="px-2 py-2 text-right">{Number(row.descuentoPorcentaje) > 0 ? `${row.descuentoPorcentaje}%` : "—"}</td><td className="px-2 py-2 text-right font-semibold">{money(row.detalleSubtotal)}</td></tr>)}</tbody></table></div>{reportQuery.data.rows.length === 0 ? <p className="border border-t-0 border-stone-300 p-8 text-center text-sm text-stone-500">No hay ventas para el filtro aplicado.</p> : null}</section>
+            <ReportPrintPreview title="REPORTE DE VENTAS" criteria={<><span className="font-semibold text-stone-700">Criterios de consulta:</span> Período: {from || "Todos"} al {to || "hoy"}{clienteId ? ` — Cliente: ${clienteLabel}` : ""}{tipoPrecio ? ` — Tipo: ${priceTypeLabel(tipoPrecio)}` : ""}</>} onClose={() => setShowPrintPreview(false)}>
+              <ReportSummary
+                rows={[
+                  ["Cantidad de ventas", reportQuery.data.summary.cantidadVentas],
+                  ["Unidades vendidas", reportQuery.data.summary.unidadesVendidas],
+                  ["Total descuentos", money(reportQuery.data.summary.totalDescuentos)],
+                  ["Total ventas", money(reportQuery.data.summary.totalVentas)],
+                ]}
+              />
+              <section className="mt-7"><h2 className="border-b border-stone-300 pb-2 text-sm font-bold uppercase tracking-wide text-stone-800">Detalle de ventas</h2><div className="mt-3 overflow-hidden border border-stone-300"><table className="w-full border-collapse text-[10px]"><thead><tr className="border-b-2 border-stone-400 bg-stone-100"><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Fecha</th><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">N.º</th><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Cliente</th><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Código</th><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Producto</th><th className="px-2 py-2 text-right font-bold uppercase text-stone-700">Cant.</th><th className="px-2 py-2 text-left font-bold uppercase text-stone-700">Tipo</th><th className="px-2 py-2 text-right font-bold uppercase text-stone-700">P. unit.</th><th className="px-2 py-2 text-right font-bold uppercase text-stone-700">Desc.</th><th className="px-2 py-2 text-right font-bold uppercase text-stone-700">Subtotal</th></tr></thead><tbody>{reportQuery.data.rows.map((row, index) => <tr key={`${row.id}-${row.presentacionId}-${index}`} className="border-b border-stone-200"><td className="px-2 py-2">{new Date(row.fecha).toLocaleDateString("es-BO")}</td><td className="px-2 py-2 font-mono">{row.numero}</td><td className="px-2 py-2">{row.clienteNombre ?? "Mostrador"}</td><td className="px-2 py-2 font-mono">{row.codigo}</td><td className="px-2 py-2">{row.productoNombre} {row.cantidadPresentacion} {row.unidadMedida}</td><td className="px-2 py-2 text-right">{row.cantidad}</td><td className="px-2 py-2">{priceTypeLabel(row.tipoPrecio)}</td><td className="px-2 py-2 text-right">{money(row.precioUnitario)}</td><td className="px-2 py-2 text-right">{Number(row.descuentoPorcentaje) > 0 ? `${row.descuentoPorcentaje}%` : "—"}</td><td className="px-2 py-2 text-right font-semibold">{money(row.detalleSubtotal)}</td></tr>)}</tbody></table></div>{reportQuery.data.rows.length === 0 ? <p className="border border-t-0 border-stone-300 p-8 text-center text-sm text-stone-500">No hay ventas para el filtro aplicado.</p> : null}</section>
             </ReportPrintPreview>
           ) : null}
         </>

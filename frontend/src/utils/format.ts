@@ -19,4 +19,16 @@ export const dateInputToISO = (value: string) => {
   return new Date(y, m - 1, d, 12).toISOString();
 };
 
+const PRICE_TYPE_LABELS: Record<string, string> = { CONSIGNACION: "P CONS", CONTADO: "PVC", MAYORISTA: "PVM" };
+
+/** Abreviatura del tipo de precio que se muestra en tablas y comprobantes. */
+export const priceTypeLabel = (tipo: string) => PRICE_TYPE_LABELS[tipo] ?? tipo;
+
+/** Estado de stock de una presentación; la etiqueta de "bajo" varía entre reportes. */
+export function stockStatusLabel<L extends string>(stockActual: number, stockMinimo: number, lowLabel: L) {
+  if (stockActual === 0) return "Sin stock";
+  if (stockActual <= stockMinimo) return lowLabel;
+  return "Normal";
+}
+
 export const hasDuplicates = (ids: number[]) => new Set(ids).size !== ids.length;

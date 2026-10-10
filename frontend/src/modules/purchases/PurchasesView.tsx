@@ -23,7 +23,6 @@ export function PurchasesView() {
   const queryClient = useQueryClient();
   const { notify } = useFeedback();
   const [search, setSearch] = useState("");
-  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [printPurchase, setPrintPurchase] = useState<DetailType | null>(null);
   const [selectedPurchase, setSelectedPurchase] = useState<DetailType | null>(null);
@@ -46,11 +45,7 @@ export function PurchasesView() {
   });
 
   const detail = useDetailLoader(purchasesApi.get);
-  const handleSelect = (id: number) =>
-    detail.load(id, (purchase) => {
-      setSelectedPurchase(purchase);
-      setSelectedId(id);
-    });
+  const handleSelect = (id: number) => detail.load(id, setSelectedPurchase);
   const handlePrintFromList = (id: number) => detail.load(id, setPrintPurchase);
 
   return (
@@ -124,7 +119,7 @@ export function PurchasesView() {
       )}
 
       {selectedPurchase && (
-        <Modal title={`Compra ${selectedPurchase.numero}`} onClose={() => { setSelectedPurchase(null); setSelectedId(null); }}>
+        <Modal title={`Compra ${selectedPurchase.numero}`} onClose={() => setSelectedPurchase(null)}>
           <PurchaseDetail purchase={selectedPurchase} onPrint={() => setPrintPurchase(selectedPurchase)} />
         </Modal>
       )}

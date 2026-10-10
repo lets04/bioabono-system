@@ -30,6 +30,12 @@ const normalize = (text: string) =>
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 
+function optionStateClass(disabled: boolean | undefined, active: boolean) {
+  if (disabled) return "cursor-not-allowed border-transparent opacity-45";
+  if (active) return "border-bio-green bg-bio-green/10";
+  return "border-transparent hover:bg-bio-cream";
+}
+
 export function SearchSelect({ options, value, onChange, required, placeholder = "Buscar...", minListWidth = 260 }: Props) {
   const listId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -198,13 +204,7 @@ export function SearchSelect({ options, value, onChange, required, placeholder =
                       onMouseEnter={() => !o.disabled && setActiveIndex(index)}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => choose(o)}
-                      className={`flex cursor-pointer items-center gap-3 rounded-lg border-l-4 px-3 py-2 text-sm transition-colors ${
-                        o.disabled
-                          ? "cursor-not-allowed border-transparent opacity-45"
-                          : isActive
-                            ? "border-bio-green bg-bio-green/10"
-                            : "border-transparent hover:bg-bio-cream"
-                      }`}
+                      className={`flex cursor-pointer items-center gap-3 rounded-lg border-l-4 px-3 py-2 text-sm transition-colors ${optionStateClass(o.disabled, isActive)}`}
                     >
                       <div className="min-w-0 flex-1">{o.content ?? <span className="font-medium text-bio-dark">{o.label}</span>}</div>
                       {o.trailing}

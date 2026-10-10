@@ -20,3 +20,24 @@ export function ReportPrintPreview({ title, criteria, children, onClose, pageSiz
     </PrintPreview>
   );
 }
+
+/** Tabla de resumen (etiqueta → valor) al inicio de cada reporte impreso. */
+export function ReportSummary({ title = "Resumen", rows }: { title?: string; rows: Array<[string, ReactNode]> }) {
+  return (
+    <section className="mt-6">
+      <h2 className="border-b border-stone-300 pb-2 text-sm font-bold uppercase tracking-wide text-stone-800">{title}</h2>
+      <table className="mt-3 w-full border-collapse text-sm">
+        <tbody>
+          {rows.map(([label, value], index) => (
+            <tr key={label} className={index < rows.length - 1 ? "border-b border-stone-200" : undefined}>
+              <th scope="row" className="px-3 py-2 text-left font-normal">
+                {label}
+              </th>
+              <td className="px-3 py-2 text-right font-semibold">{value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  );
+}
