@@ -7,10 +7,10 @@ import type {
 } from "../types";
 
 export const consignationsApi = {
-  list: (search = "", estado = "") =>
-    apiRequest<Consignation[]>(
-      `/consignations?search=${encodeURIComponent(search)}${estado ? `&estado=${encodeURIComponent(estado)}` : ""}`,
-    ),
+  list: (search = "", estado = "") => {
+    const estadoParam = estado ? `&estado=${encodeURIComponent(estado)}` : "";
+    return apiRequest<Consignation[]>(`/consignations?search=${encodeURIComponent(search)}${estadoParam}`);
+  },
   get: (id: number) => apiRequest<ConsignationDetail>(`/consignations/${id}`),
   create: (payload: ConsignationCreatePayload) =>
     apiRequest<ConsignationDetail>("/consignations", {

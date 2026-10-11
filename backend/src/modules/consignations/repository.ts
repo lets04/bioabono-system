@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import {
   auditLogs,
@@ -12,16 +12,17 @@ import {
   sales,
   users,
 } from "../../db/schema/index.js";
+import { nextDocumentNumber } from "../../lib/documentNumber.js";
+import { adjustStock } from "../../lib/stock.js";
+import { derivedPriceCents, fromCents, toCents } from "../../lib/pricing.js";
 import type { ConsignationCreateInput, ConsignationLiquidateInput, ConsignationListFilters } from "./schema.js";
-
-export const CONSIGNATION_PRICE_FACTOR = 0.8;
 
 export async function listConsignations(filters: ConsignationListFilters) {
   const term = filters.search?.trim();
   const estado = filters.estado && filters.estado !== "todos" ? filters.estado : undefined;
 
   const conditions = [];
-  if (estado) conditions.push(eq(consignations.estado, estado as any));
+  if (estado) conditions.push(eq(consignations.estado, estado));
   if (term) conditions.push(or(ilike(consignations.numero, `%${term}%`), ilike(customers.nombre, `%${term}%`)));
 
   const rows = await db
@@ -37,7 +38,7 @@ export async function listConsignations(filters: ConsignationListFilters) {
     })
     .from(consignations)
     .leftJoin(customers, eq(consignations.clienteId, customers.id))
-    .where(conditions.length ? and(...conditions) : undefined)
+    .where(and(...conditions))
     .orderBy(desc(consignations.fechaEntrega), desc(consignations.id));
 
   if (rows.length === 0) return rows;
@@ -46,7 +47,7 @@ export async function listConsignations(filters: ConsignationListFilters) {
   const counts = await db
     .select({ consignacionId: consignmentDetails.consignacionId, count: sql<number>`count(*)::int` })
     .from(consignmentDetails)
-    .where(sql`${consignmentDetails.consignacionId} IN (${sql.join(ids.map((id) => sql`${id}`), sql`,`)})`)
+    .where(inArray(consignmentDetails.consignacionId, ids))
     .groupBy(consignmentDetails.consignacionId);
   const map = new Map(counts.map((c) => [c.consignacionId, c.count]));
 
@@ -123,9 +124,7 @@ export async function createConsignationWithTransaction(input: ConsignationCreat
     if (isNaN(fechaEntrega.getTime())) throw new Error("INVALID_DATE");
 
     const now = new Date();
-    const numero = `CSG-${Date.now()}-${Math.floor(Math.random() * 1000)
-      .toString()
-      .padStart(3, "0")}`;
+    const numero = await nextDocumentNumber(tx, "CSG", consignations, consignations.numero, now);
 
     const [consignation] = await tx
       .insert(consignations)
@@ -148,18 +147,18 @@ export async function createConsignationWithTransaction(input: ConsignationCreat
           pvp: productPresentations.pvp,
           stockActual: productPresentations.stockActual,
           activo: productPresentations.activo,
+          productoActivo: products.activo,
         })
         .from(productPresentations)
+        .innerJoin(products, eq(productPresentations.productoId, products.id))
         .where(eq(productPresentations.id, det.presentacionId))
         .limit(1);
       if (!pres) throw new Error(`PRESENTATION_NOT_FOUND:${det.presentacionId}`);
-      if (!pres.activo) throw new Error(`PRESENTATION_INACTIVE:${det.presentacionId}`);
+      if (!pres.activo || !pres.productoActivo) throw new Error(`PRESENTATION_INACTIVE:${det.presentacionId}`);
       if (pres.stockActual < det.cantidadEntregada)
         throw new Error(`STOCK_INSUFFICIENT:${det.presentacionId}`);
 
-      const precioConsignacion = Number(pres.pvp) * CONSIGNATION_PRICE_FACTOR;
-      const stockAnterior = pres.stockActual;
-      const stockPosterior = stockAnterior - det.cantidadEntregada;
+      const precioConsignacion = fromCents(derivedPriceCents(pres.pvp, "CONSIGNACION"));
 
       await tx.insert(consignmentDetails).values({
         consignacionId: consignation.id,
@@ -167,14 +166,16 @@ export async function createConsignationWithTransaction(input: ConsignationCreat
         cantidadEntregada: det.cantidadEntregada,
         cantidadVendida: 0,
         cantidadDevuelta: 0,
-        precioConsignacion: precioConsignacion.toFixed(2),
+        precioConsignacion,
         importeVendido: "0",
       });
 
-      await tx
-        .update(productPresentations)
-        .set({ stockActual: stockPosterior, updatedAt: now })
-        .where(eq(productPresentations.id, det.presentacionId));
+      const { stockAnterior, stockPosterior } = await adjustStock(
+        tx,
+        det.presentacionId,
+        -det.cantidadEntregada,
+        now,
+      );
 
       await tx.insert(inventoryMovements).values({
         presentacionId: det.presentacionId,
@@ -218,7 +219,8 @@ export async function liquidateConsignationWithTransaction(
       })
       .from(consignations)
       .where(eq(consignations.id, id))
-      .limit(1);
+      .limit(1)
+      .for("update");
     if (!consignation) throw new Error("CONSIGNATION_NOT_FOUND");
     if (consignation.estado !== "PENDIENTE") throw new Error("ALREADY_LIQUIDATED");
 
@@ -236,7 +238,7 @@ export async function liquidateConsignationWithTransaction(
     if (byPresentation.size !== detalles.length) throw new Error("INVALID_LIQUIDATION");
 
     const now = new Date();
-    let subtotalVenta = 0;
+    let subtotalVentaCents = 0;
     const saleDetalles: Array<{
       presentacionId: number;
       cantidadVendida: number;
@@ -255,30 +257,24 @@ export async function liquidateConsignationWithTransaction(
         throw new Error("INVALID_LIQUIDATION");
       }
 
-      const importeVendido = entrada.cantidadVendida * Number(det.precioConsignacion);
+      const importeVendido = fromCents(entrada.cantidadVendida * toCents(det.precioConsignacion));
 
       await tx
         .update(consignmentDetails)
         .set({
           cantidadVendida: entrada.cantidadVendida,
           cantidadDevuelta: entrada.cantidadDevuelta,
-          importeVendido: importeVendido.toFixed(2),
+          importeVendido,
         })
         .where(eq(consignmentDetails.id, det.id));
 
       if (entrada.cantidadDevuelta > 0) {
-        const [pres] = await tx
-          .select({ stockActual: productPresentations.stockActual })
-          .from(productPresentations)
-          .where(eq(productPresentations.id, det.presentacionId))
-          .limit(1);
-        const stockAnterior = pres.stockActual;
-        const stockPosterior = stockAnterior + entrada.cantidadDevuelta;
-
-        await tx
-          .update(productPresentations)
-          .set({ stockActual: stockPosterior, updatedAt: now })
-          .where(eq(productPresentations.id, det.presentacionId));
+        const { stockAnterior, stockPosterior } = await adjustStock(
+          tx,
+          det.presentacionId,
+          entrada.cantidadDevuelta,
+          now,
+        );
 
         await tx.insert(inventoryMovements).values({
           presentacionId: det.presentacionId,
@@ -295,20 +291,18 @@ export async function liquidateConsignationWithTransaction(
       }
 
       if (entrada.cantidadVendida > 0) {
-        subtotalVenta += importeVendido;
+        subtotalVentaCents += toCents(importeVendido);
         saleDetalles.push({
           presentacionId: det.presentacionId,
           cantidadVendida: entrada.cantidadVendida,
           precioConsignacion: det.precioConsignacion,
-          importeVendido: importeVendido.toFixed(2),
+          importeVendido,
         });
       }
     }
 
-    const ventaNumero = `VTA-${Date.now()}-${Math.floor(Math.random() * 1000)
-      .toString()
-      .padStart(3, "0")}`;
-    const totalVenta = subtotalVenta.toFixed(2);
+    const ventaNumero = await nextDocumentNumber(tx, "VTA", sales, sales.numero, now);
+    const totalVenta = fromCents(subtotalVentaCents);
 
     const [sale] = await tx
       .insert(sales)

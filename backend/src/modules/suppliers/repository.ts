@@ -1,6 +1,7 @@
 import { asc, eq, ilike, or } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { suppliers } from "../../db/schema/index.js";
+import { optionalTrimOrNull, trimOrNull } from "../../lib/validation.js";
 import type { SupplierCreateInput, SupplierUpdateInput } from "./schema.js";
 
 export async function listSuppliers(search?: string) {
@@ -31,10 +32,10 @@ export async function createSupplier(input: SupplierCreateInput) {
     .insert(suppliers)
     .values({
       nombre: input.nombre,
-      nit: input.nit?.trim() ? input.nit.trim() : null,
-      telefono: input.telefono?.trim() ? input.telefono.trim() : null,
-      email: input.email?.trim() ? input.email.trim() : null,
-      direccion: input.direccion?.trim() ? input.direccion.trim() : null,
+      nit: trimOrNull(input.nit),
+      telefono: trimOrNull(input.telefono),
+      email: trimOrNull(input.email),
+      direccion: trimOrNull(input.direccion),
       activo: input.activo ?? true,
     })
     .returning();
@@ -46,10 +47,10 @@ export async function updateSupplier(id: number, input: SupplierUpdateInput) {
     .update(suppliers)
     .set({
       nombre: input.nombre,
-      nit: input.nit !== undefined ? (input.nit?.trim() ? input.nit.trim() : null) : undefined,
-      telefono: input.telefono !== undefined ? (input.telefono?.trim() ? input.telefono.trim() : null) : undefined,
-      email: input.email !== undefined ? (input.email?.trim() ? input.email.trim() : null) : undefined,
-      direccion: input.direccion !== undefined ? (input.direccion?.trim() ? input.direccion.trim() : null) : undefined,
+      nit: optionalTrimOrNull(input.nit),
+      telefono: optionalTrimOrNull(input.telefono),
+      email: optionalTrimOrNull(input.email),
+      direccion: optionalTrimOrNull(input.direccion),
       activo: input.activo,
       updatedAt: new Date(),
     })

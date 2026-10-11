@@ -24,12 +24,17 @@ function normalizeUsername(value: string) {
   return value.trim().toLowerCase();
 }
 
+// Hash usado cuando el usuario no existe, para que la respuesta tarde lo mismo y no revele cuentas.
+const dummyPasswordHash = unusablePasswordHash();
+
 export async function login(body: unknown) {
   const input = loginSchema.parse(body);
   const username = normalizeUsername(input.username);
   const user = await repository.findUserByUsername(username);
 
-  if (!user) {
+  // La contraseña se verifica antes de revelar el estado de la cuenta.
+  const valid = await verifyPassword(input.password, user?.passwordHash ?? (await dummyPasswordHash));
+  if (!user || !valid) {
     throw new Error("INVALID_CREDENTIALS");
   }
   if (user.estado === "PENDIENTE") {
@@ -37,11 +42,6 @@ export async function login(body: unknown) {
   }
   if (user.estado === "INACTIVO" || !user.activo) {
     throw new Error("ACCOUNT_INACTIVE");
-  }
-
-  const valid = await verifyPassword(input.password, user.passwordHash);
-  if (!valid) {
-    throw new Error("INVALID_CREDENTIALS");
   }
 
   const authUser = repository.toAuthUser(user);
@@ -71,6 +71,10 @@ export async function authenticateHeader(authorization?: string | null): Promise
   const user = await repository.findUserById(payload.userId);
   if (!user) throw new Error("UNAUTHORIZED");
   if (user.estado !== "ACTIVO" || !user.activo) throw new Error("UNAUTHORIZED");
+  // Tokens emitidos antes del último cambio de contraseña ya no son válidos.
+  if (user.passwordChangedAt && payload.issuedAt < Math.floor(user.passwordChangedAt.getTime() / 1000)) {
+    throw new Error("UNAUTHORIZED");
+  }
 
   return repository.toAuthUser(user);
 }
@@ -161,7 +165,8 @@ export async function activateAccount(body: unknown) {
     throw new Error("ACTIVATION_TOKEN_EXPIRED");
   }
 
-  const updated = await repository.activateUser(user.id, await hashPassword(input.password));
+  const updated = await repository.activateUser(user.id, user.activationTokenHash!, await hashPassword(input.password));
+  if (!updated) throw new Error("ACTIVATION_TOKEN_USED");
   await repository.insertAuditLog({
     usuarioId: updated.id,
     accion: "ACTIVAR_USUARIO",
@@ -186,7 +191,10 @@ export async function forgotPassword(body: unknown) {
       addHours(new Date(), env.passwordResetTokenTtlHours),
     );
     const resetUrl = `${env.frontendUrl}/recuperar-contrasena?token=${encodeURIComponent(token)}`;
-    await sendMail(passwordResetEmail(user.nombre, user.username, resetUrl));
+    // Sin await: la respuesta no debe depender (ni en tiempo ni en errores) de que la cuenta exista.
+    sendMail(passwordResetEmail(user.nombre, user.username, resetUrl)).catch((error) => {
+      console.error("[mail] Error enviando correo de recuperación:", error);
+    });
   }
 
   return { message: "Si la cuenta existe, enviaremos un enlace para restablecer la contraseña" };
@@ -202,7 +210,12 @@ export async function resetPassword(body: unknown) {
   }
   if (user.estado !== "ACTIVO") throw new Error("ACCOUNT_INACTIVE");
 
-  const updated = await repository.consumePasswordReset(user.id, await hashPassword(input.password));
+  const updated = await repository.consumePasswordReset(
+    user.id,
+    user.passwordResetTokenHash!,
+    await hashPassword(input.password),
+  );
+  if (!updated) throw new Error("RESET_TOKEN_USED");
   await repository.insertAuditLog({
     usuarioId: updated.id,
     accion: "RESTABLECER_CONTRASENA",
@@ -254,4 +267,26 @@ export async function updateUserStatus(id: number, body: unknown, actor: AuthUse
     activatedAt: updated.activatedAt,
     createdAt: updated.createdAt,
   };
+}
+
+export async function deleteUser(id: number, actor: AuthUser) {
+  const user = await repository.findUserById(id);
+  if (!user) throw new Error("USER_NOT_FOUND");
+  if (user.id === actor.id) throw new Error("CANNOT_DELETE_OWN_USER");
+  if (await repository.userHasOperationalRecords(id)) {
+    throw new Error("USER_HAS_OPERATIONAL_RECORDS");
+  }
+
+  const deleted = await repository.deleteUser(id);
+  if (!deleted) throw new Error("USER_NOT_FOUND");
+
+  await repository.insertAuditLog({
+    usuarioId: actor.id,
+    accion: "ELIMINAR_USUARIO",
+    entidad: "usuario",
+    entidadId: deleted.id,
+    detalle: { username: deleted.username, nombre: deleted.nombre },
+  });
+
+  return { message: "Usuario eliminado" };
 }

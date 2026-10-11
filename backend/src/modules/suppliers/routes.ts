@@ -1,19 +1,11 @@
 import { Elysia } from "elysia";
 import { ZodError } from "zod";
+import { fallbackError, parseId, validationError } from "../../lib/http.js";
 import { requireAuth } from "../auth/plugin.js";
 import * as service from "./service.js";
 
-function parseId(value: string) {
-  const id = Number(value);
-  if (!Number.isInteger(id) || id <= 0) throw new Error("INVALID_ID");
-  return id;
-}
-
 function handleError(error: unknown, set: { status?: number | string }) {
-  if (error instanceof ZodError) {
-    set.status = 400;
-    return { error: "VALIDATION_ERROR", details: error.flatten() };
-  }
+  if (error instanceof ZodError) return validationError(error, set);
   if (error instanceof Error && error.message === "SUPPLIER_NOT_FOUND") {
     set.status = 404;
     return { error: "SUPPLIER_NOT_FOUND", message: "El proveedor no existe" };
@@ -22,8 +14,7 @@ function handleError(error: unknown, set: { status?: number | string }) {
     set.status = 400;
     return { error: "INVALID_ID", message: "Identificador inválido" };
   }
-  set.status = 500;
-  return { error: "INTERNAL_ERROR", message: "No se pudo procesar la solicitud" };
+  return fallbackError(error, set);
 }
 
 export const suppliersModule = new Elysia({ prefix: "/suppliers" })

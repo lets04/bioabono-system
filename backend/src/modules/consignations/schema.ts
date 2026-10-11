@@ -1,9 +1,5 @@
 import { z } from "zod";
-
-const numericString = z
-  .union([z.string(), z.number()])
-  .transform((v) => String(v).trim())
-  .refine((v) => v !== "" && Number.isFinite(Number(v)), "Debe ser un número válido");
+import { DUPLICATE_PRESENTATION_MSG as DUPLICATE_MSG, uniquePresentations } from "../../lib/validation.js";
 
 export const consignationCreateSchema = z.object({
   clienteId: z.number().int().positive("El cliente es obligatorio"),
@@ -16,7 +12,8 @@ export const consignationCreateSchema = z.object({
         cantidadEntregada: z.number().int().positive("La cantidad entregada debe ser mayor que cero"),
       }),
     )
-    .min(1, "Debe incluir al menos un producto"),
+    .min(1, "Debe incluir al menos un producto")
+    .refine(uniquePresentations, DUPLICATE_MSG),
 });
 
 export const consignationLiquidateSchema = z.object({
@@ -28,7 +25,8 @@ export const consignationLiquidateSchema = z.object({
         cantidadDevuelta: z.number().int().nonnegative("La cantidad devuelta no puede ser negativa"),
       }),
     )
-    .min(1, "Debe incluir al menos un producto"),
+    .min(1, "Debe incluir al menos un producto")
+    .refine(uniquePresentations, DUPLICATE_MSG),
 });
 
 export const consignationListSchema = z.object({
@@ -39,5 +37,3 @@ export const consignationListSchema = z.object({
 export type ConsignationCreateInput = z.infer<typeof consignationCreateSchema>;
 export type ConsignationLiquidateInput = z.infer<typeof consignationLiquidateSchema>;
 export type ConsignationListFilters = z.infer<typeof consignationListSchema>;
-
-export const numericStringSchema = numericString;

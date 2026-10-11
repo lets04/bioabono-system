@@ -1,9 +1,5 @@
 import { z } from "zod";
-
-const numericString = z
-  .union([z.string(), z.number()])
-  .transform((v) => String(v).trim())
-  .refine((v) => v !== "" && Number.isFinite(Number(v)), "Debe ser un número válido");
+import { DUPLICATE_PRESENTATION_MSG as DUPLICATE_MSG, numericString, uniquePresentations } from "../../lib/validation.js";
 
 export const saleCreateSchema = z.object({
   clienteId: z.number().int().positive().optional().nullable(),
@@ -22,7 +18,8 @@ export const saleCreateSchema = z.object({
         tipoPrecio: z.enum(["PVP", "CONTADO", "MAYORISTA"]).optional(),
       }),
     )
-    .min(1, "Debe incluir al menos un producto"),
+    .min(1, "Debe incluir al menos un producto")
+    .refine(uniquePresentations, DUPLICATE_MSG),
 });
 
 export type SaleCreateInput = z.infer<typeof saleCreateSchema>;

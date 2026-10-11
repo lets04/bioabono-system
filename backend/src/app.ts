@@ -11,12 +11,23 @@ import { reportsModule } from "./modules/reports/index.js";
 import { salesModule } from "./modules/sales/index.js";
 import { suppliersModule } from "./modules/suppliers/index.js";
 import { usersModule } from "./modules/users/index.js";
+import { fallbackError } from "./lib/http.js";
 
 export const app = new Elysia({ prefix: "/api" })
-  .onError(({ error, set }) => {
+  .onError(({ code, error, set }) => {
     if (error instanceof Error && (error.message === "UNAUTHORIZED" || error.message === "FORBIDDEN")) {
       return handleAuthError(error, set);
     }
+    if (code === "NOT_FOUND") {
+      set.status = 404;
+      return { error: "NOT_FOUND", message: "Recurso no encontrado" };
+    }
+    if (code === "PARSE" || code === "VALIDATION") {
+      set.status = 400;
+      return { error: "VALIDATION_ERROR", message: "Solicitud inválida" };
+    }
+    // Errores de rutas sin try/catch propio: nunca devolver el texto crudo de la base de datos.
+    return fallbackError(error, set);
   })
   .get("/health", () => ({ status: "ok", service: "bioabono-api" }))
   .use(authModule)

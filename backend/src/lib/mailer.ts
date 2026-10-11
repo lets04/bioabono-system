@@ -15,9 +15,12 @@ function isSmtpConfigured() {
 export async function sendMail(message: MailMessage) {
   if (!isSmtpConfigured()) {
     console.warn("[mail] SMTP no configurado. El correo no se envió.");
-    console.warn(`[mail] Para: ${message.to}`);
-    console.warn(`[mail] Asunto: ${message.subject}`);
-    console.warn(`[mail] ${message.text}`);
+    // El texto incluye enlaces de activación/recuperación válidos: solo se muestra fuera de producción.
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(`[mail] Para: ${message.to}`);
+      console.warn(`[mail] Asunto: ${message.subject}`);
+      console.warn(`[mail] ${message.text}`);
+    }
     return { delivered: false as const };
   }
 

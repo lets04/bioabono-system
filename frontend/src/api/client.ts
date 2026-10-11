@@ -12,6 +12,19 @@ function isPublicAuthPath(path: string) {
   return AUTH_PUBLIC_PATHS.some((item) => path === item || path.startsWith(`${item}?`));
 }
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+// Evita disparar varias redirecciones cuando fallan varias peticiones a la vez.
+let redirectingToLogin = false;
+
 export function authHeaders(): HeadersInit {
   const token = getToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -29,16 +42,20 @@ export async function apiRequest<T>(path: string, options?: RequestInit): Promis
 
   const data = await response.json().catch(() => null);
   if (!response.ok) {
-    if (response.status === 401 && !isPublicAuthPath(path)) {
-      clearSession();
-      if (window.location.pathname === "/" || !isPublicFrontendPath()) {
-        window.location.assign("/");
-      }
-    }
-    throw new Error(data?.message || "No se pudo completar la operación");
+    if (response.status === 401 && !isPublicAuthPath(path)) handleUnauthorized();
+    throw new ApiError(data?.message || "No se pudo completar la operación", response.status);
   }
 
   return data as T;
+}
+
+/** Sesión expirada o inválida: limpia la sesión y vuelve al login una sola vez. */
+export function handleUnauthorized() {
+  clearSession();
+  if (!redirectingToLogin && (window.location.pathname === "/" || !isPublicFrontendPath())) {
+    redirectingToLogin = true;
+    window.location.assign("/");
+  }
 }
 
 function isPublicFrontendPath() {

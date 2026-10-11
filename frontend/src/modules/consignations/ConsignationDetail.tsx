@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { CheckCircle2, Handshake } from "lucide-react";
 
 import { money } from "../../utils/format";
+import { FormError } from "../../components/ui/FormError";
 
 import type { ConsignationDetail } from "../../types";
 
@@ -9,6 +10,8 @@ type Props = {
   consignation: ConsignationDetail;
   isLiquidating: boolean;
   error?: string;
+  onPrintEntrega?: () => void;
+  onPrintLiquidacion?: () => void;
 
   onLiquidate: (payload: {
     detalles: Array<{
@@ -23,6 +26,8 @@ export function ConsignationDetailView({
   consignation,
   isLiquidating,
   error,
+  onPrintEntrega,
+  onPrintLiquidacion,
   onLiquidate,
 }: Props) {
   const isPending = consignation.estado === "PENDIENTE";
@@ -35,10 +40,7 @@ export function ConsignationDetailView({
   const [vendidos, setVendidos] = useState<Record<number, string>>(
     () =>
       Object.fromEntries(
-        consignation.detalles.map((d) => [
-          d.presentacionId,
-          isPending ? String(d.cantidadVendida ?? 0) : String(d.cantidadVendida ?? 0),
-        ]),
+        consignation.detalles.map((d) => [d.presentacionId, String(d.cantidadVendida ?? 0)]),
       ),
   );
 
@@ -227,7 +229,7 @@ export function ConsignationDetailView({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
 
-            <thead className="bg-stone-50 text-xs uppercase text-stone-500">
+            <thead className="table-head">
               <tr>
 
                 <th className="px-4 py-3">
@@ -507,32 +509,42 @@ export function ConsignationDetailView({
           ERROR
       ====================================================== */}
 
-      {isPending && error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      {isPending && <FormError message={error} />}
 
       {/* ======================================================
           BOTÓN LIQUIDAR
       ====================================================== */}
 
-      {isPending && (
-        <div className="flex justify-end">
-
+      <div className="flex flex-wrap justify-end gap-2">
+        {onPrintEntrega ? (
+          <button
+            type="button"
+            onClick={onPrintEntrega}
+            className="inline-flex items-center gap-2 rounded-lg border border-stone-300 px-4 py-2.5 text-sm font-semibold text-stone-700 hover:bg-stone-50"
+          >
+            Imprimir entrega
+          </button>
+        ) : null}
+        {onPrintLiquidacion ? (
+          <button
+            type="button"
+            onClick={onPrintLiquidacion}
+            className="inline-flex items-center gap-2 rounded-lg border border-stone-300 px-4 py-2.5 text-sm font-semibold text-stone-700 hover:bg-stone-50"
+          >
+            Imprimir liquidación
+          </button>
+        ) : null}
+        {isPending && (
           <button
             type="button"
             onClick={handleLiquidate}
             disabled={!allValid || isLiquidating}
             className="inline-flex items-center gap-2 rounded-lg bg-bio-green px-6 py-2.5 text-sm font-semibold text-white hover:bg-bio-dark disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isLiquidating
-              ? "Liquidando..."
-              : "Liquidar consignación"}
+            {isLiquidating ? "Liquidando..." : "Liquidar consignación"}
           </button>
-
-        </div>
-      )}
+        )}
+      </div>
 
     </div>
   );

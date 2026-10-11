@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { Field } from "../../components/ui/Field";
+import { PasswordInput } from "../../components/ui/PasswordInput";
 import { authApi } from "../../api/auth";
-import { AuthShell } from "./AuthShell";
+import { AuthMessage, AuthShell } from "./AuthShell";
 
 export function ResetPasswordView() {
   const params = new URLSearchParams(window.location.search);
@@ -41,14 +42,14 @@ export function ResetPasswordView() {
           <input className="input" value={token} onChange={(e) => setToken(e.target.value)} required />
         </Field>
       ) : null}
-      <Field label="Nueva contraseña">
-        <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} required />
+      <Field label="Nueva contraseña" hint="Mínimo 8 caracteres.">
+        <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} autoComplete="new-password" required />
       </Field>
       <Field label="Confirmar contraseña">
-        <input className="input" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} minLength={8} required />
+        <PasswordInput value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} minLength={8} autoComplete="new-password" required />
       </Field>
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      <button type="submit" disabled={loading || !token} className="h-11 rounded-lg bg-bio-green text-sm font-semibold text-white hover:bg-bio-dark disabled:opacity-60">
+      {error ? <AuthMessage tone="error">{error}</AuthMessage> : null}
+      <button type="submit" disabled={loading || !token} className="btn-primary">
         {loading ? "Guardando..." : "Actualizar contraseña"}
       </button>
     </AuthShell>

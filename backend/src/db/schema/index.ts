@@ -1,6 +1,7 @@
 import {
   boolean,
   check,
+  index,
   integer,
   jsonb,
   numeric,
@@ -48,10 +49,13 @@ export const users = pgTable(
     passwordResetTokenHash: text("password_reset_token_hash"),
     passwordResetTokenExpiresAt: timestamp("password_reset_token_expires_at", { withTimezone: true }),
     passwordResetUsedAt: timestamp("password_reset_used_at", { withTimezone: true }),
+    passwordChangedAt: timestamp("password_changed_at", { withTimezone: true }),
     ...timestamps,
   },
   (table) => ({
     usernameIdx: uniqueIndex("users_username_unique").on(table.username),
+    activationTokenIdx: index("users_activation_token_hash_idx").on(table.activationTokenHash),
+    resetTokenIdx: index("users_password_reset_token_hash_idx").on(table.passwordResetTokenHash),
   }),
 );
 
@@ -160,6 +164,8 @@ export const purchases = pgTable(
   },
   (table) => ({
     numeroIdx: uniqueIndex("purchases_numero_unique").on(table.numero),
+    fechaIdx: index("purchases_fecha_idx").on(table.fecha),
+    proveedorIdx: index("purchases_proveedor_id_idx").on(table.proveedorId),
     subtotalNonNegative: check("purchases_subtotal_non_negative", sql`${table.subtotal} >= 0`),
     descuentoNonNegative: check("purchases_descuento_non_negative", sql`${table.descuento} >= 0`),
     totalNonNegative: check("purchases_total_non_negative", sql`${table.total} >= 0`),
@@ -181,6 +187,7 @@ export const purchaseDetails = pgTable(
     subtotal: numeric("subtotal", { precision: 12, scale: 2 }).notNull(),
   },
   (table) => ({
+    compraIdx: index("purchase_details_compra_id_idx").on(table.compraId),
     cantidadPositive: check("purchase_details_cantidad_positive", sql`${table.cantidad} > 0`),
     precioUnitarioNonNegative: check(
       "purchase_details_precio_unitario_non_negative",
@@ -211,6 +218,8 @@ export const sales = pgTable(
   (table) => ({
     numeroIdx: uniqueIndex("sales_numero_unique").on(table.numero),
     consignacionIdx: uniqueIndex("sales_consignacion_id_unique").on(table.consignacionId),
+    fechaIdx: index("sales_fecha_idx").on(table.fecha),
+    clienteIdx: index("sales_cliente_id_idx").on(table.clienteId),
     subtotalNonNegative: check("sales_subtotal_non_negative", sql`${table.subtotal} >= 0`),
     descuentoTotalNonNegative: check(
       "sales_descuento_total_non_negative",
@@ -238,6 +247,7 @@ export const saleDetails = pgTable(
     subtotal: numeric("subtotal", { precision: 12, scale: 2 }).notNull(),
   },
   (table) => ({
+    ventaIdx: index("sale_details_venta_id_idx").on(table.ventaId),
     cantidadPositive: check("sale_details_cantidad_positive", sql`${table.cantidad} > 0`),
     precioUnitarioNonNegative: check(
       "sale_details_precio_unitario_non_negative",
@@ -246,6 +256,10 @@ export const saleDetails = pgTable(
     descuentoPorcentajeNonNegative: check(
       "sale_details_descuento_porcentaje_non_negative",
       sql`${table.descuentoPorcentaje} >= 0`,
+    ),
+    descuentoPorcentajeMax: check(
+      "sale_details_descuento_porcentaje_max",
+      sql`${table.descuentoPorcentaje} <= 100`,
     ),
     descuentoMontoNonNegative: check(
       "sale_details_descuento_monto_non_negative",
@@ -273,6 +287,7 @@ export const consignations = pgTable(
   },
   (table) => ({
     numeroIdx: uniqueIndex("consignations_numero_unique").on(table.numero),
+    clienteEstadoIdx: index("consignations_cliente_id_estado_idx").on(table.clienteId, table.estado),
   }),
 );
 
@@ -293,6 +308,7 @@ export const consignmentDetails = pgTable(
     importeVendido: numeric("importe_vendido", { precision: 12, scale: 2 }).notNull().default("0"),
   },
   (table) => ({
+    consignacionIdx: index("consignment_details_consignacion_id_idx").on(table.consignacionId),
     cantidadEntregadaPositive: check(
       "consignment_details_cantidad_entregada_positive",
       sql`${table.cantidadEntregada} > 0`,
@@ -340,6 +356,10 @@ export const inventoryMovements = pgTable(
     observacion: text("observacion"),
   },
   (table) => ({
+    presentacionFechaIdx: index("inventory_movements_presentacion_id_fecha_idx").on(
+      table.presentacionId,
+      table.fecha,
+    ),
     cantidadPositive: check("inventory_movements_cantidad_positive", sql`${table.cantidad} > 0`),
     stockAnteriorNonNegative: check(
       "inventory_movements_stock_anterior_non_negative",

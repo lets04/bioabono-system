@@ -6,7 +6,6 @@ import {
   productPresentations,
   products,
 } from "./schema/index.js";
-import { seedAdmin } from "./seedAdmin.js";
 
 const categoryData = [
   "Bioabonos",
@@ -316,8 +315,7 @@ function formatCodePart(cantidad: number): string {
     return String(cantidad).padStart(3, "0");
   }
 
-  const normalized = cantidad.toString().replace(/\.?0+$/, "");
-  const [integerPart, decimalPart] = normalized.split(".");
+  const [integerPart, decimalPart] = cantidad.toString().split(".");
   return `${integerPart.padStart(3, "0")}.${decimalPart}`;
 }
 
@@ -407,9 +405,8 @@ async function getOrCreateProduct(
   return created.id;
 }
 
+// El administrador se crea aparte con `npm run db:seed-admin` para no resetear su contraseña al sembrar datos.
 async function seed() {
-  await seedAdmin();
-
   let categoriesCreated = 0;
   let productsCreated = 0;
   let presentationsCreated = 0;

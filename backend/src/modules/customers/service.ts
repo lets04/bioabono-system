@@ -12,15 +12,12 @@ export async function getCustomer(id: number) {
 }
 
 export async function createCustomer(body: unknown) {
-  const input = customerCreateSchema.parse(body);
-  if (input.email === "") (input as any).email = null;
-  return repository.createCustomer(input);
+  return repository.createCustomer(customerCreateSchema.parse(body));
 }
 
 export async function updateCustomer(id: number, body: unknown) {
   await getCustomer(id);
   const input = customerUpdateSchema.parse(body);
-  if ((input as any).email === "") (input as any).email = null;
   const updated = await repository.updateCustomer(id, input);
   if (!updated) throw new Error("CUSTOMER_NOT_FOUND");
   return updated;

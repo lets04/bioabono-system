@@ -1,7 +1,9 @@
 import { useState, type FormEvent } from "react";
 import { Field } from "../../components/ui/Field";
+import { PasswordInput } from "../../components/ui/PasswordInput";
+import { Spinner } from "../../components/ui/Spinner";
 import { useAuth } from "../../auth/AuthContext";
-import { AuthShell } from "./AuthShell";
+import { AuthMessage, AuthShell } from "./AuthShell";
 
 export function LoginView() {
   const { login } = useAuth();
@@ -25,25 +27,30 @@ export function LoginView() {
   };
 
   return (
-    <AuthShell title="Iniciar sesión" subtitle="Ingresa con tu correo y contraseña" onSubmit={onSubmit}>
+    <AuthShell title="Iniciar sesión" subtitle="Ingresa con tu correo y contraseña para continuar" onSubmit={onSubmit}>
       <Field label="Correo">
-        <input className="input" type="email" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" required />
+        <input className="input" type="email" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" placeholder="nombre@empresa.com" autoFocus required />
       </Field>
-      <Field label="Contraseña">
-        <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
-      </Field>
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      <button type="submit" disabled={loading} className="h-11 rounded-lg bg-bio-green text-sm font-semibold text-white hover:bg-bio-dark disabled:opacity-60">
+      <div className="grid gap-1.5">
+        <div className="flex items-center justify-between text-sm font-medium text-stone-700">
+          <label htmlFor="login-password">Contraseña</label>
+          <a className="text-xs font-medium text-bio-green hover:underline" href="/olvide-contrasena">
+            ¿La olvidaste?
+          </a>
+        </div>
+        <PasswordInput id="login-password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
+      </div>
+      {error ? <AuthMessage tone="error">{error}</AuthMessage> : null}
+      <button type="submit" disabled={loading} className="btn-primary">
+        {loading ? <Spinner size={16} /> : null}
         {loading ? "Ingresando..." : "Iniciar sesión"}
       </button>
-      <div className="flex flex-col gap-2 text-center text-sm">
-        <a className="text-bio-green hover:underline" href="/olvide-contrasena">
-          ¿Olvidaste tu contraseña?
+      <p className="text-center text-sm text-stone-500">
+        ¿Primera vez?{" "}
+        <a className="font-medium text-bio-green hover:underline" href="/activar-cuenta">
+          Activa tu cuenta
         </a>
-        <a className="text-stone-500 hover:underline" href="/activar-cuenta">
-          ¿Primera vez? Activar cuenta
-        </a>
-      </div>
+      </p>
     </AuthShell>
   );
 }

@@ -33,7 +33,7 @@ export function UserForm({ onSubmit, isSubmitting, error }: Props) {
         </select>
       </Field>
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      <button type="submit" disabled={isSubmitting} className="h-11 rounded-lg bg-bio-green text-sm font-semibold text-white hover:bg-bio-dark disabled:opacity-60">
+      <button type="submit" disabled={isSubmitting} className="btn-primary">
         {isSubmitting ? "Enviando invitación..." : "Registrar e invitar"}
       </button>
     </form>

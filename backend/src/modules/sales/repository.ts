@@ -1,4 +1,4 @@
-import { asc, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import {
   consignations,
@@ -10,21 +10,13 @@ import {
   sales,
   auditLogs,
 } from "../../db/schema/index.js";
-
-function derivedPrice(pvp: number, tipoPrecio: string): number {
-  switch (tipoPrecio) {
-    case "CONTADO":
-      return pvp * 0.75;
-    case "MAYORISTA":
-      return pvp * 0.7;
-    case "PVP":
-    default:
-      return pvp;
-  }
-}
+import { nextDocumentNumber } from "../../lib/documentNumber.js";
+import { adjustStock } from "../../lib/stock.js";
+import { derivedPriceCents, fromCents, type PriceType } from "../../lib/pricing.js";
 
 export async function listSales(search?: string) {
   const term = search?.trim();
+  const pattern = `%${term}%`;
   const rows = await db
     .select({
       id: sales.id,
@@ -46,9 +38,9 @@ export async function listSales(search?: string) {
     .where(
       term
         ? or(
-            ilike(sales.numero, `%${term}%`),
-            ilike(customers.nombre, `%${term}%`),
-            sql`${sales.id}::text ILIKE ${`%${term}%`}`,
+            ilike(sales.numero, pattern),
+            ilike(customers.nombre, pattern),
+            sql`${sales.id}::text ILIKE ${pattern}`,
           )
         : undefined,
     )
@@ -59,7 +51,7 @@ export async function listSales(search?: string) {
   const counts = await db
     .select({ ventaId: saleDetails.ventaId, count: sql<number>`count(*)::int` })
     .from(saleDetails)
-    .where(sql`${saleDetails.ventaId} IN (${sql.join(ids.map((id) => sql`${id}`), sql`,`)})`)
+    .where(inArray(saleDetails.ventaId, ids))
     .groupBy(saleDetails.ventaId);
   const map = new Map(counts.map((c) => [c.ventaId, c.count]));
   return rows.map((r) => ({ ...r, lineas: map.get(r.id) ?? 0 }));
@@ -120,21 +112,22 @@ export async function getSaleById(id: number) {
 export async function createSaleWithTransaction(input: {
   clienteId: number | null;
   fecha?: string | null;
-  tipoPrecio: string;
+  tipoPrecio: PriceType;
   observacion?: string | null;
-  detalles: Array<{ presentacionId: number; cantidad: number; descuentoPorcentaje: string; tipoPrecio?: string }>;
+  detalles: Array<{ presentacionId: number; cantidad: number; descuentoPorcentaje: string; tipoPrecio?: PriceType }>;
   usuarioId: number;
 }) {
   return db.transaction(async (tx) => {
     const fecha = input.fecha ? new Date(input.fecha) : new Date();
     if (isNaN(fecha.getTime())) throw new Error("INVALID_DATE");
 
-    let subtotalBruto = 0;
-    let descuentoTotal = 0;
+    // Importes en centavos enteros: el total siempre coincide con la suma de las líneas.
+    let subtotalBrutoCents = 0;
+    let descuentoTotalCents = 0;
     const enrichedDetalles: Array<{
       presentacionId: number;
       cantidad: number;
-      tipoPrecio: string;
+      tipoPrecio: PriceType;
       precioUnitario: string;
       descuentoPorcentaje: string;
       descuentoMonto: string;
@@ -148,40 +141,37 @@ export async function createSaleWithTransaction(input: {
           pvp: productPresentations.pvp,
           stockActual: productPresentations.stockActual,
           activo: productPresentations.activo,
+          productoActivo: products.activo,
         })
         .from(productPresentations)
+        .innerJoin(products, eq(productPresentations.productoId, products.id))
         .where(eq(productPresentations.id, det.presentacionId))
         .limit(1);
       if (!pres) throw new Error(`PRESENTATION_NOT_FOUND:${det.presentacionId}`);
-      if (!pres.activo) throw new Error(`PRESENTATION_INACTIVE:${det.presentacionId}`);
+      if (!pres.activo || !pres.productoActivo) throw new Error(`PRESENTATION_INACTIVE:${det.presentacionId}`);
       if (pres.stockActual < det.cantidad) throw new Error(`STOCK_INSUFFICIENT:${det.presentacionId}`);
 
       const tipo = det.tipoPrecio ?? input.tipoPrecio;
-      const pvpNum = Number(pres.pvp);
-      const precioBase = derivedPrice(pvpNum, tipo);
+      const precioBaseCents = derivedPriceCents(pres.pvp, tipo);
       const descPct = Number(det.descuentoPorcentaje ?? 0);
-      const descuentoMonto = precioBase * (descPct / 100);
-      const precioFinal = precioBase - descuentoMonto;
-      const subtotalLinea = precioFinal * det.cantidad;
+      const descuentoCents = Math.round((precioBaseCents * descPct) / 100);
+      const subtotalLineaCents = (precioBaseCents - descuentoCents) * det.cantidad;
 
-      subtotalBruto += precioBase * det.cantidad;
-      descuentoTotal += descuentoMonto * det.cantidad;
+      subtotalBrutoCents += precioBaseCents * det.cantidad;
+      descuentoTotalCents += descuentoCents * det.cantidad;
 
       enrichedDetalles.push({
         presentacionId: det.presentacionId,
         cantidad: det.cantidad,
         tipoPrecio: tipo,
-        precioUnitario: precioBase.toFixed(2),
+        precioUnitario: fromCents(precioBaseCents),
         descuentoPorcentaje: descPct.toFixed(2),
-        descuentoMonto: descuentoMonto.toFixed(2),
-        subtotal: subtotalLinea.toFixed(2),
+        descuentoMonto: fromCents(descuentoCents),
+        subtotal: fromCents(subtotalLineaCents),
       });
     }
 
-    const total = subtotalBruto - descuentoTotal;
-    const numero = `VTA-${Date.now()}-${Math.floor(Math.random() * 1000)
-      .toString()
-      .padStart(3, "0")}`;
+    const numero = await nextDocumentNumber(tx, "VTA", sales, sales.numero);
 
     const [sale] = await tx
       .insert(sales)
@@ -190,9 +180,9 @@ export async function createSaleWithTransaction(input: {
         clienteId: input.clienteId,
         usuarioId: input.usuarioId,
         fecha,
-        subtotal: subtotalBruto.toFixed(2),
-        descuentoTotal: descuentoTotal.toFixed(2),
-        total: total.toFixed(2),
+        subtotal: fromCents(subtotalBrutoCents),
+        descuentoTotal: fromCents(descuentoTotalCents),
+        total: fromCents(subtotalBrutoCents - descuentoTotalCents),
         estado: "COMPLETADA",
         observacion: input.observacion?.trim() || null,
       })
@@ -203,25 +193,14 @@ export async function createSaleWithTransaction(input: {
         ventaId: sale.id,
         presentacionId: det.presentacionId,
         cantidad: det.cantidad,
-        tipoPrecio: det.tipoPrecio as any,
+        tipoPrecio: det.tipoPrecio,
         precioUnitario: det.precioUnitario,
         descuentoPorcentaje: det.descuentoPorcentaje,
         descuentoMonto: det.descuentoMonto,
         subtotal: det.subtotal,
       });
 
-      const [pres] = await tx
-        .select({ stockActual: productPresentations.stockActual })
-        .from(productPresentations)
-        .where(eq(productPresentations.id, det.presentacionId))
-        .limit(1);
-      const stockAnterior = pres.stockActual;
-      const stockPosterior = stockAnterior - det.cantidad;
-
-      await tx
-        .update(productPresentations)
-        .set({ stockActual: stockPosterior, updatedAt: new Date() })
-        .where(eq(productPresentations.id, det.presentacionId));
+      const { stockAnterior, stockPosterior } = await adjustStock(tx, det.presentacionId, -det.cantidad);
 
       await tx.insert(inventoryMovements).values({
         presentacionId: det.presentacionId,

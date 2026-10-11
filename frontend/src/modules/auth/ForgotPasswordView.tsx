@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Field } from "../../components/ui/Field";
 import { authApi } from "../../api/auth";
-import { AuthShell } from "./AuthShell";
+import { AuthMessage, AuthShell } from "./AuthShell";
 
 export function ForgotPasswordView() {
   const [username, setUsername] = useState("");
@@ -38,9 +38,9 @@ export function ForgotPasswordView() {
       <Field label="Correo">
         <input className="input" type="email" value={username} onChange={(e) => setUsername(e.target.value)} required />
       </Field>
-      {message ? <p className="text-sm text-emerald-700">{message}</p> : null}
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      <button type="submit" disabled={loading} className="h-11 rounded-lg bg-bio-green text-sm font-semibold text-white hover:bg-bio-dark disabled:opacity-60">
+      {message ? <AuthMessage tone="success">{message}</AuthMessage> : null}
+      {error ? <AuthMessage tone="error">{error}</AuthMessage> : null}
+      <button type="submit" disabled={loading} className="btn-primary">
         {loading ? "Enviando..." : "Enviar enlace"}
       </button>
     </AuthShell>

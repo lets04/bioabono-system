@@ -1,4 +1,5 @@
-import { apiRequest, authHeaders } from "./client";
+import { ApiError, apiRequest, authHeaders, handleUnauthorized } from "./client";
+import { todayLocal } from "../utils/format";
 import type { PurchasesReport, SalesReport, InventoryReport, ProductsReport, ConsignationsReport, ReportFilters } from "../types";
 
 function toQuery(filters: ReportFilters): string {
@@ -13,8 +14,9 @@ function toQuery(filters: ReportFilters): string {
 async function downloadExport(path: string, fallbackName: string) {
   const res = await fetch(`/api${path}`, { method: "GET", headers: { ...authHeaders() } });
   if (!res.ok) {
+    if (res.status === 401) handleUnauthorized();
     const data = await res.json().catch(() => null);
-    throw new Error(data?.message || "No se pudo generar el archivo Excel");
+    throw new ApiError(data?.message || "No se pudo generar el archivo Excel", res.status);
   }
   const blob = await res.blob();
   const contentDisposition = res.headers.get("Content-Disposition");
@@ -39,8 +41,8 @@ export const reportsApi = {
   inventory: (filters: ReportFilters) => apiRequest<InventoryReport>(`/reports/inventory${toQuery(filters)}`),
   products: (filters: ReportFilters) => apiRequest<ProductsReport>(`/reports/products${toQuery(filters)}`),
   consignations: (filters: ReportFilters) => apiRequest<ConsignationsReport>(`/reports/consignations${toQuery(filters)}`),
-  exportPurchases: (filters: ReportFilters) => downloadExport(`/reports/purchases/export${toQuery(filters)}`, `reporte-compras-${new Date().toISOString().slice(0, 10)}.xlsx`),
-  exportSales: (filters: ReportFilters) => downloadExport(`/reports/sales/export${toQuery(filters)}`, `reporte-ventas-${new Date().toISOString().slice(0, 10)}.xlsx`),
-  exportInventory: (filters: ReportFilters) => downloadExport(`/reports/inventory/export${toQuery(filters)}`, `reporte-inventario-${new Date().toISOString().slice(0, 10)}.xlsx`),
-  exportProducts: (filters: ReportFilters) => downloadExport(`/reports/products/export${toQuery(filters)}`, `reporte-productos-${new Date().toISOString().slice(0, 10)}.xlsx`),
+  exportPurchases: (filters: ReportFilters) => downloadExport(`/reports/purchases/export${toQuery(filters)}`, `reporte-compras-${todayLocal()}.xlsx`),
+  exportSales: (filters: ReportFilters) => downloadExport(`/reports/sales/export${toQuery(filters)}`, `reporte-ventas-${todayLocal()}.xlsx`),
+  exportInventory: (filters: ReportFilters) => downloadExport(`/reports/inventory/export${toQuery(filters)}`, `reporte-inventario-${todayLocal()}.xlsx`),
+  exportProducts: (filters: ReportFilters) => downloadExport(`/reports/products/export${toQuery(filters)}`, `reporte-productos-${todayLocal()}.xlsx`),
 };
