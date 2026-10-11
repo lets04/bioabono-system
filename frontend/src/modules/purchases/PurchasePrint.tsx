@@ -65,6 +65,9 @@ export function PurchasePrint({ purchase, onClose }: { purchase: PurchaseDetail;
         </div>
       </div>
 
+      <div className="print-total ml-auto mt-4 max-w-xs border-t-2 border-stone-800 pt-3 text-sm">
+        <div className="flex justify-between gap-6 text-base font-bold"><span>TOTAL COMPRA</span><span>{money(purchase.total)}</span></div>
+      </div>
       <PrintFooter left="BIOABONO — Documento generado por el sistema" right="Comprobante de compra" />
     </PrintPreview>
   );

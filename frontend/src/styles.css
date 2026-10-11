@@ -130,3 +130,14 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+
+/* Impresión comercial A4: fondo blanco, texto negro y bordes económicos. */
+@media print {
+  body { background: #fff !important; color: #111 !important; }
+  .print-document { color: #111 !important; background: #fff !important; box-shadow: none !important; }
+  .print-document table { width: 100%; border-collapse: collapse; }
+  .print-document th, .print-document td { border: 1px solid #777; }
+  .print-document tr { break-inside: avoid; page-break-inside: avoid; }
+  .print-document img { max-width: 100%; object-fit: contain; }
+}

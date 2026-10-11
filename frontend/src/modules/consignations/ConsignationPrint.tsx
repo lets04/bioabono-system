@@ -147,6 +147,10 @@ export function ConsignationPrint({
         </table>
       </div>
 
+      <section className="print-signatures mt-10 grid grid-cols-2 gap-12">
+        <div className="print-signature-line"><div className="h-8" /><p className="font-semibold">ENTREGADO POR</p><p className="mt-1 text-xs text-stone-600">Nombre y firma</p></div>
+        <div className="print-signature-line"><div className="h-8" /><p className="font-semibold">RECIBIDO CONFORME</p><p className="mt-1 text-xs text-stone-600">Nombre, firma y fecha</p></div>
+      </section>
       <PrintFooter left="BIOABONO — Documento generado por el sistema" right={title} />
     </PrintPreview>
   );
