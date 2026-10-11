@@ -25,6 +25,7 @@ import { useCategories } from "./hooks/useCategories";
 import { useSuppliers } from "./hooks/useSuppliers";
 import { useCustomers } from "./hooks/useCustomers";
 import type { View } from "./types";
+import { SessionExpiryWarning } from "./auth/SessionExpiryWarning";
 
 const allNavItems = [
   { id: "dashboard", label: "Inicio", icon: LayoutDashboard, group: "General", description: "Resumen del negocio y alertas de stock" },
@@ -66,7 +67,12 @@ export function App() {
   if (page === "reset") return <ResetPasswordView />;
   if (!user) return <LoginView />;
 
-  return <AuthenticatedApp isAdmin={user.rol === "ADMIN"} userName={user.nombre} />;
+  return (
+    <>
+      <AuthenticatedApp isAdmin={user.rol === "ADMIN"} userName={user.nombre} />
+      <SessionExpiryWarning />
+    </>
+  );
 }
 
 function AuthenticatedApp({ isAdmin, userName }: { isAdmin: boolean; userName: string }) {

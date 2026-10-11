@@ -36,6 +36,20 @@
       "when": 1791502726152,
       "tag": "0004_indexes_and_constraints",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791592056018,
+      "tag": "0005_auth_sessions",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791736378850,
+      "tag": "0006_auth_sessions_persistent",
+      "breakpoints": true
     }
   ]
 }

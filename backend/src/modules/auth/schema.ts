@@ -3,6 +3,7 @@ import { z } from "zod";
 export const loginSchema = z.object({
   username: z.string().trim().min(1, "El usuario es obligatorio").max(160),
   password: z.string().min(1, "La contraseña es obligatoria"),
+  remember: z.boolean().optional().default(false),
 });
 
 export const passwordSchema = z

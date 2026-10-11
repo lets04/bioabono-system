@@ -1,7 +1,8 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import {
   auditLogs,
+  authSessions,
   consignations,
   inventoryMovements,
   purchases,
@@ -231,6 +232,61 @@ export async function insertAuditLog(input: {
     entidadId: input.entidadId ?? null,
     detalle: input.detalle ?? null,
   });
+}
+
+export async function createSession(input: { tokenHash: string; usuarioId: number; expiresAt: Date; persistent: boolean }) {
+  // De paso se borran las sesiones vencidas o revocadas para que la tabla no crezca.
+  await db.delete(authSessions).where(or(lt(authSessions.expiresAt, new Date()), isNotNull(authSessions.revokedAt)));
+  await db.insert(authSessions).values({
+    id: input.tokenHash,
+    usuarioId: input.usuarioId,
+    expiresAt: input.expiresAt,
+    persistent: input.persistent,
+  });
+}
+
+/** Sesión vigente (no revocada ni vencida) junto a su usuario, en una sola consulta. */
+export async function findActiveSession(tokenHash: string) {
+  const [row] = await db
+    .select({
+      user: users,
+      expiresAt: authSessions.expiresAt,
+      persistent: authSessions.persistent,
+      createdAt: authSessions.createdAt,
+    })
+    .from(authSessions)
+    .innerJoin(users, eq(users.id, authSessions.usuarioId))
+    .where(
+      and(
+        eq(authSessions.id, tokenHash),
+        isNull(authSessions.revokedAt),
+        sql`${authSessions.expiresAt} > now()`,
+      ),
+    )
+    .limit(1);
+  return row ?? null;
+}
+
+export async function extendSession(tokenHash: string, expiresAt: Date) {
+  await db
+    .update(authSessions)
+    .set({ expiresAt })
+    .where(and(eq(authSessions.id, tokenHash), isNull(authSessions.revokedAt)));
+}
+
+export async function revokeSession(tokenHash: string) {
+  await db
+    .update(authSessions)
+    .set({ revokedAt: new Date() })
+    .where(and(eq(authSessions.id, tokenHash), isNull(authSessions.revokedAt)));
+}
+
+/** Cierra todas las sesiones abiertas del usuario (cambio de contraseña, desactivación). */
+export async function revokeUserSessions(usuarioId: number) {
+  await db
+    .update(authSessions)
+    .set({ revokedAt: new Date() })
+    .where(and(eq(authSessions.usuarioId, usuarioId), isNull(authSessions.revokedAt)));
 }
 
 export async function usernameExists(username: string, excludeId?: number) {

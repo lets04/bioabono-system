@@ -7,7 +7,6 @@ import {
   unusablePasswordHash,
   verifyPassword,
 } from "../../lib/crypto.js";
-import { signAuthToken, verifyAuthToken } from "../../lib/jwt.js";
 import { invitationEmail, passwordResetEmail, sendMail } from "../../lib/mailer.js";
 import * as repository from "./repository.js";
 import {
@@ -27,6 +26,32 @@ function normalizeUsername(value: string) {
 // Hash usado cuando el usuario no existe, para que la respuesta tarde lo mismo y no revele cuentas.
 const dummyPasswordHash = unusablePasswordHash();
 
+// Una sesión persistente se renueva como mucho una vez por minuto para no escribir en la base en cada petición.
+const SESSION_RENEW_EVERY_MS = 60_000;
+// Una sesión normal solo se puede alargar en sus últimos minutos (cuando el frontend muestra el aviso).
+const SESSION_EXTEND_WINDOW_MS = 15 * 60_000;
+
+/**
+ * Vencimiento contado desde ahora. Normal: SESSION_MAX_HOURS fijas; al acercarse el final el usuario
+ * puede alargarla otras tantas (`extendSession`). Persistente ("Mantener sesión iniciada"):
+ * SESSION_REMEMBER_DAYS sin uso, renovándose con cada petición.
+ */
+function sessionExpiry(persistent: boolean) {
+  const duration = persistent ? env.sessionRememberDays * 24 * 60 * 60_000 : env.sessionMaxHours * 60 * 60_000;
+  return new Date(Date.now() + duration);
+}
+
+export type SessionInfo = { tokenHash: string; persistent: boolean; expiresAt: Date };
+
+/** Lo que el frontend necesita de la sesión: si es persistente y cuánto le queda (en ms, sin depender de su reloj). */
+export function sessionSummary(user: AuthUser, session: Pick<SessionInfo, "persistent" | "expiresAt">) {
+  return {
+    user: publicUser(user),
+    persistent: session.persistent,
+    expiresInMs: Math.max(0, session.expiresAt.getTime() - Date.now()),
+  };
+}
+
 export async function login(body: unknown) {
   const input = loginSchema.parse(body);
   const username = normalizeUsername(input.username);
@@ -44,39 +69,67 @@ export async function login(body: unknown) {
     throw new Error("ACCOUNT_INACTIVE");
   }
 
-  const authUser = repository.toAuthUser(user);
-  const token = await signAuthToken({
-    userId: authUser.id,
-    username: authUser.username,
-    rol: authUser.rol,
-  });
+  // Token opaco en la cookie; en la base solo su hash, así una copia de la base no sirve para suplantar a nadie.
+  const token = createSecureToken();
+  const persistent = input.remember;
+  const expiresAt = sessionExpiry(persistent);
+  await repository.createSession({ tokenHash: hashToken(token), usuarioId: user.id, expiresAt, persistent });
 
-  return { token, user: publicUser(authUser) };
+  return { token, expiresAt, ...sessionSummary(repository.toAuthUser(user), { persistent, expiresAt }) };
 }
 
-export async function authenticateHeader(authorization?: string | null): Promise<AuthUser> {
-  if (!authorization?.startsWith("Bearer ")) {
-    throw new Error("UNAUTHORIZED");
-  }
-  const token = authorization.slice("Bearer ".length).trim();
+/**
+ * Valida el token. Una sesión persistente se alarga con el uso: `renewedUntil` trae su nuevo vencimiento
+ * para alargar también la cookie. Una sesión normal no se alarga sola (su cookie no tiene fecha:
+ * el navegador la borra al cerrarse).
+ */
+export async function authenticateToken(
+  token?: string | null,
+): Promise<{ user: AuthUser; session: SessionInfo; renewedUntil: Date | null }> {
   if (!token) throw new Error("UNAUTHORIZED");
 
-  let payload;
-  try {
-    payload = await verifyAuthToken(token);
-  } catch {
-    throw new Error("UNAUTHORIZED");
-  }
-
-  const user = await repository.findUserById(payload.userId);
-  if (!user) throw new Error("UNAUTHORIZED");
+  // Una sesión cerrada (logout), revocada o vencida no devuelve usuario.
+  const tokenHash = hashToken(token);
+  const session = await repository.findActiveSession(tokenHash);
+  if (!session) throw new Error("UNAUTHORIZED");
+  const { user } = session;
   if (user.estado !== "ACTIVO" || !user.activo) throw new Error("UNAUTHORIZED");
-  // Tokens emitidos antes del último cambio de contraseña ya no son válidos.
-  if (user.passwordChangedAt && payload.issuedAt < Math.floor(user.passwordChangedAt.getTime() / 1000)) {
-    throw new Error("UNAUTHORIZED");
+
+  let expiresAt = session.expiresAt;
+  let renewedUntil: Date | null = null;
+  if (session.persistent) {
+    const next = sessionExpiry(true);
+    if (next.getTime() - expiresAt.getTime() >= SESSION_RENEW_EVERY_MS) {
+      await repository.extendSession(tokenHash, next);
+      expiresAt = renewedUntil = next;
+    }
   }
 
-  return repository.toAuthUser(user);
+  return {
+    user: repository.toAuthUser(user),
+    session: { tokenHash, persistent: session.persistent, expiresAt },
+    renewedUntil,
+  };
+}
+
+/**
+ * "Mantener sesión activa" del aviso de vencimiento: otras SESSION_MAX_HOURS desde ahora. Solo en los
+ * últimos minutos de la sesión, para que no se pueda alargar indefinidamente sin que el usuario lo pida;
+ * antes de eso devuelve el vencimiento actual sin cambios.
+ */
+export async function extendSession(session: SessionInfo) {
+  if (session.persistent || session.expiresAt.getTime() - Date.now() > SESSION_EXTEND_WINDOW_MS) {
+    return session.expiresAt;
+  }
+  const expiresAt = sessionExpiry(false);
+  await repository.extendSession(session.tokenHash, expiresAt);
+  return expiresAt;
+}
+
+/** Revoca la sesión del token; un token inválido o ya revocado no es un error al cerrar sesión. */
+export async function logout(token?: string | null) {
+  if (!token) return;
+  await repository.revokeSession(hashToken(token));
 }
 
 export async function inviteUser(body: unknown, actor: AuthUser) {
@@ -216,6 +269,8 @@ export async function resetPassword(body: unknown) {
     await hashPassword(input.password),
   );
   if (!updated) throw new Error("RESET_TOKEN_USED");
+  // Quien tuviera una sesión abierta con la contraseña anterior queda fuera.
+  await repository.revokeUserSessions(updated.id);
   await repository.insertAuditLog({
     usuarioId: updated.id,
     accion: "RESTABLECER_CONTRASENA",
@@ -254,6 +309,7 @@ export async function updateUserStatus(id: number, body: unknown, actor: AuthUse
   if (input.estado === "ACTIVO" && !user.activatedAt) throw new Error("USER_NOT_ACTIVATED");
 
   const updated = await repository.setUserStatus(id, input.estado);
+  if (input.estado === "INACTIVO") await repository.revokeUserSessions(updated.id);
   await repository.insertAuditLog({
     usuarioId: actor.id,
     accion: input.estado === "ACTIVO" ? "ACTIVAR_ESTADO_USUARIO" : "DESACTIVAR_USUARIO",

@@ -2,11 +2,13 @@ import { Elysia } from "elysia";
 import { ZodError } from "zod";
 import { fallbackError } from "../../lib/http.js";
 import * as service from "./service.js";
-import { publicUser } from "./types.js";
-import { requireAuth } from "./plugin.js";
-import { checkRateLimit, clientIp } from "../../lib/rateLimit.js";
+import { clearSessionCookie, requireAuth, SESSION_COOKIE, setSessionCookie } from "./plugin.js";
+import { checkRateLimit, clientIp as requestIp } from "../../lib/rateLimit.js";
+import { env } from "../../config/env.js";
 
 const MINUTE = 60_000;
+
+const clientIp = (request: Request) => requestIp(request, env.trustProxy);
 
 function usernameFrom(body: unknown) {
   const value = (body as { username?: unknown } | null)?.username;
@@ -56,36 +58,43 @@ export function handleAuthError(error: unknown, set: { status?: number | string 
 }
 
 const publicAuth = new Elysia({ prefix: "/auth" })
-  .post("/login", async ({ body, headers, set }) => {
+  .post("/login", async ({ body, request, cookie, set }) => {
     try {
-      checkRateLimit(`login:ip:${clientIp(headers)}`, 30, 15 * MINUTE);
+      checkRateLimit(`login:ip:${clientIp(request)}`, 30, 15 * MINUTE);
       checkRateLimit(`login:user:${usernameFrom(body)}`, 10, 15 * MINUTE);
-      return await service.login(body);
+      const { token, expiresAt, ...session } = await service.login(body);
+      setSessionCookie(cookie[SESSION_COOKIE], token, session.persistent ? expiresAt : undefined);
+      return session;
     } catch (error) {
       return handleAuthError(error, set);
     }
   })
-  .post("/logout", () => ({ message: "Sesión cerrada" }))
-  .post("/forgot-password", async ({ body, headers, set }) => {
+  .post("/logout", async ({ cookie }) => {
+    const token = cookie[SESSION_COOKIE]?.value;
+    await service.logout(typeof token === "string" ? token : null);
+    clearSessionCookie(cookie[SESSION_COOKIE]);
+    return { message: "Sesión cerrada" };
+  })
+  .post("/forgot-password", async ({ body, request, set }) => {
     try {
-      checkRateLimit(`forgot:ip:${clientIp(headers)}`, 10, 15 * MINUTE);
+      checkRateLimit(`forgot:ip:${clientIp(request)}`, 10, 15 * MINUTE);
       checkRateLimit(`forgot:user:${usernameFrom(body)}`, 3, 15 * MINUTE);
       return await service.forgotPassword(body);
     } catch (error) {
       return handleAuthError(error, set);
     }
   })
-  .post("/reset-password", async ({ body, headers, set }) => {
+  .post("/reset-password", async ({ body, request, set }) => {
     try {
-      checkRateLimit(`reset:ip:${clientIp(headers)}`, 10, 15 * MINUTE);
+      checkRateLimit(`reset:ip:${clientIp(request)}`, 10, 15 * MINUTE);
       return await service.resetPassword(body);
     } catch (error) {
       return handleAuthError(error, set);
     }
   })
-  .get("/activate", async ({ query, headers, set }) => {
+  .get("/activate", async ({ query, request, set }) => {
     try {
-      checkRateLimit(`activate:ip:${clientIp(headers)}`, 30, 15 * MINUTE);
+      checkRateLimit(`activate:ip:${clientIp(request)}`, 30, 15 * MINUTE);
       const token = typeof query.token === "string" ? query.token : "";
       if (!token) throw new Error("INVALID_ACTIVATION_TOKEN");
       return await service.getActivationStatus(token);
@@ -93,9 +102,9 @@ const publicAuth = new Elysia({ prefix: "/auth" })
       return handleAuthError(error, set);
     }
   })
-  .post("/activate", async ({ body, headers, set }) => {
+  .post("/activate", async ({ body, request, set }) => {
     try {
-      checkRateLimit(`activate:ip:${clientIp(headers)}`, 30, 15 * MINUTE);
+      checkRateLimit(`activate:ip:${clientIp(request)}`, 30, 15 * MINUTE);
       return await service.activateAccount(body);
     } catch (error) {
       return handleAuthError(error, set);
@@ -104,6 +113,11 @@ const publicAuth = new Elysia({ prefix: "/auth" })
 
 const privateAuth = new Elysia({ prefix: "/auth" })
   .use(requireAuth)
-  .get("/me", ({ authUser }) => publicUser(authUser));
+  // `persistent` y `expiresInMs` le permiten al frontend avisar antes de que venza una sesión normal.
+  .get("/me", ({ authUser, authSession }) => service.sessionSummary(authUser, authSession))
+  .post("/extend", async ({ authUser, authSession }) => {
+    const expiresAt = await service.extendSession(authSession);
+    return service.sessionSummary(authUser, { persistent: authSession.persistent, expiresAt });
+  });
 
 export const authModule = new Elysia().use(publicAuth).use(privateAuth);

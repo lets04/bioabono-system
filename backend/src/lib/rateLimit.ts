@@ -15,8 +15,19 @@ export function checkRateLimit(key: string, limit: number, windowMs: number) {
   if (bucket.count > limit) throw new Error("RATE_LIMITED");
 }
 
-export function clientIp(headers: Record<string, string | undefined>) {
-  return headers["x-forwarded-for"]?.split(",")[0]?.trim() || headers["x-real-ip"] || "unknown";
+/** Petición del adaptador de Node (srvx), que expone la IP del socket en `ip`. */
+type IpSource = { headers: Headers; ip?: string };
+
+/**
+ * IP del cliente para el limitador. Las cabeceras X-Forwarded-For / X-Real-IP las puede
+ * inventar cualquiera, así que solo se usan si el API está detrás de un proxy propio.
+ */
+export function clientIp(request: IpSource, trustProxy: boolean) {
+  if (trustProxy) {
+    const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip");
+    if (forwarded) return forwarded;
+  }
+  return request.ip || "unknown";
 }
 
 setInterval(() => {

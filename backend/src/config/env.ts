@@ -4,8 +4,10 @@ config();
 
 export const env = {
   databaseUrl: required("DATABASE_URL"),
-  jwtSecret: jwtSecret(),
-  jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "8h",
+  // Duración de una sesión normal; antes de que venza, el usuario puede alargarla otras tantas horas.
+  sessionMaxHours: positiveNumber("SESSION_MAX_HOURS", 8),
+  // Días sin uso tras los que vence una sesión con "Mantener sesión iniciada".
+  sessionRememberDays: positiveNumber("SESSION_REMEMBER_DAYS", 30),
   port: Number(process.env.PORT ?? 3000),
   frontendUrl: process.env.FRONTEND_URL ?? "http://localhost:5173",
   adminUsername: process.env.ADMIN_USERNAME ?? "info@entropicaingenieria.com",
@@ -21,6 +23,10 @@ export const env = {
   passwordResetTokenTtlHours: Number(process.env.PASSWORD_RESET_TOKEN_TTL_HOURS ?? 1),
   // Desfase horario del negocio para interpretar filtros de fecha (Bolivia = UTC-4)
   businessUtcOffset: process.env.BUSINESS_UTC_OFFSET ?? "-04:00",
+  // Solo detrás de un proxy propio (Nginx, etc.): toma la IP del cliente de X-Forwarded-For.
+  trustProxy: process.env.TRUST_PROXY === "true",
+  // Cookie de sesión solo por HTTPS; por defecto activa en producción.
+  cookieSecure: process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === "true" : process.env.NODE_ENV === "production",
   // Orígenes permitidos para CORS (separados por coma) cuando el frontend se sirve desde otro dominio.
   corsOrigins: (process.env.CORS_ORIGINS ?? "")
     .split(",")
@@ -28,13 +34,11 @@ export const env = {
     .filter(Boolean),
 };
 
-function jwtSecret() {
-  const value = required("JWT_SECRET");
-  if (value.length < 32 || value === "change-me") {
-    const message = "JWT_SECRET es débil: usa al menos 32 caracteres aleatorios (p. ej. openssl rand -base64 48)";
-    if (process.env.NODE_ENV === "production") throw new Error(message);
-    console.warn(`[env] ${message}`);
-  }
+function positiveNumber(name: string, fallback: number) {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value <= 0) throw new Error(`${name} debe ser un número mayor que 0`);
   return value;
 }
 

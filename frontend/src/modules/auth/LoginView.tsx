@@ -9,6 +9,7 @@ export function LoginView() {
   const { login } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -17,7 +18,7 @@ export function LoginView() {
     setError("");
     setLoading(true);
     try {
-      await login(username, password);
+      await login(username, password, remember);
       window.history.replaceState({}, "", "/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo iniciar sesión");
@@ -40,6 +41,13 @@ export function LoginView() {
         </div>
         <PasswordInput id="login-password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
       </div>
+      <label className="flex items-start gap-2 text-sm text-stone-700">
+        <input checked={remember} onChange={(e) => setRemember(e.target.checked)} type="checkbox" className="mt-0.5 h-4 w-4 accent-bio-green" />
+        <span>
+          Mantener sesión iniciada
+          <span className="block text-xs text-stone-500">No lo marques en computadoras compartidas.</span>
+        </span>
+      </label>
       {error ? <AuthMessage tone="error">{error}</AuthMessage> : null}
       <button type="submit" disabled={loading} className="btn-primary">
         {loading ? <Spinner size={16} /> : null}

@@ -1,19 +1,22 @@
 import { apiRequest } from "./client";
 import type { AuthUser } from "../auth/session";
 
-export type LoginResponse = {
-  token: string;
+// `persistent`: sesión iniciada con "Mantener sesión iniciada". `expiresInMs`: tiempo que le queda.
+export type SessionResponse = {
   user: AuthUser;
+  persistent: boolean;
+  expiresInMs: number;
 };
 
 export const authApi = {
-  login: (username: string, password: string) =>
-    apiRequest<LoginResponse>("/auth/login", {
+  login: (username: string, password: string, remember: boolean) =>
+    apiRequest<SessionResponse>("/auth/login", {
       method: "POST",
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, remember }),
     }),
   logout: () => apiRequest<{ message: string }>("/auth/logout", { method: "POST" }),
-  me: () => apiRequest<AuthUser>("/auth/me"),
+  me: () => apiRequest<SessionResponse>("/auth/me"),
+  extend: () => apiRequest<SessionResponse>("/auth/extend", { method: "POST" }),
   activateStatus: (token: string) => apiRequest<{ username: string; nombre: string }>(`/auth/activate?token=${encodeURIComponent(token)}`),
   activate: (payload: { token: string; password: string; confirmPassword: string }) =>
     apiRequest<{ user: AuthUser }>("/auth/activate", {

@@ -9,6 +9,7 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { DataState } from "../../components/ui/DataState";
 import { SearchInput } from "../../components/ui/SearchInput";
 import { productsApi } from "../../api/products";
+import { useAuth } from "../../auth/AuthContext";
 import { money } from "../../utils/format";
 import { ProductDetail } from "./ProductDetail";
 import { ProductForm } from "./ProductForm";
@@ -26,6 +27,7 @@ type Props = {
 export function ProductsView({ products, categories, isLoading, isError, search, onSearch }: Props) {
   const queryClient = useQueryClient();
   const { notify, confirm } = useFeedback();
+  const isAdmin = useAuth().user?.rol === "ADMIN";
   const [editing, setEditing] = useState<Product | null>(null);
   const [selected, setSelected] = useState<Product | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -86,13 +88,15 @@ export function ProductsView({ products, categories, isLoading, isError, search,
     <div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <SearchInput value={search} onChange={onSearch} placeholder="Buscar por código, producto o abreviación" />
-        <button
-          onClick={() => setIsCreating(true)}
-          className="btn-primary"
-        >
-          <Plus size={17} />
-          Registrar producto
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => setIsCreating(true)}
+            className="btn-primary"
+          >
+            <Plus size={17} />
+            Registrar producto
+          </button>
+        )}
       </div>
 
       <DataState isLoading={isLoading} isError={isError} />
@@ -140,13 +144,17 @@ export function ProductsView({ products, categories, isLoading, isError, search,
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-2">
                         <IconButton label="Ver detalle" onClick={() => setSelected(product)} icon={Eye} />
-                        <IconButton label="Editar" onClick={() => setEditing(product)} icon={Pencil} />
-                        <IconButton
-                          label={product.activo ? "Desactivar" : "Activar"}
-                          onClick={() => void confirmToggle(product)}
-                          icon={Power}
-                          tone={product.activo ? "danger" : "default"}
-                        />
+                        {isAdmin && (
+                          <>
+                            <IconButton label="Editar" onClick={() => setEditing(product)} icon={Pencil} />
+                            <IconButton
+                              label={product.activo ? "Desactivar" : "Activar"}
+                              onClick={() => void confirmToggle(product)}
+                              icon={Power}
+                              tone={product.activo ? "danger" : "default"}
+                            />
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>

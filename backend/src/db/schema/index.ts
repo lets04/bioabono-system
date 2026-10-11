@@ -59,6 +59,25 @@ export const users = pgTable(
   }),
 );
 
+// Sesión emitida en el login. `id` es el hash SHA-256 del token que viaja en la cookie (nunca el token en claro).
+export const authSessions = pgTable(
+  "auth_sessions",
+  {
+    id: varchar("id", { length: 64 }).primaryKey(),
+    usuarioId: integer("usuario_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    // "Mantener sesión iniciada": dura SESSION_REMEMBER_DAYS sin uso y sin tope de jornada.
+    persistent: boolean("persistent").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    usuarioIdx: index("auth_sessions_usuario_id_idx").on(table.usuarioId),
+  }),
+);
+
 export const categories = pgTable("categories", {
   id: serial("id").primaryKey(),
   nombre: varchar("nombre", { length: 140 }).notNull(),

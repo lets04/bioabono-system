@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 import { ZodError } from "zod";
 import { fallbackError, parseId, validationError } from "../../lib/http.js";
-import { requireAuth } from "../auth/plugin.js";
+import { adminOnly, requireAuth } from "../auth/plugin.js";
 import * as service from "./service.js";
 
 function handleError(error: unknown, set: { status?: number | string }) {
@@ -48,30 +48,42 @@ export const productsModule = new Elysia({ prefix: "/products" })
       return handleError(error, set);
     }
   })
-  .post("/", async ({ body, set }) => {
-    try {
-      set.status = 201;
-      return await service.createProduct(body);
-    } catch (error) {
-      return handleError(error, set);
-    }
-  })
-  .put("/:id", async ({ params, body, set }) => {
-    try {
-      return await service.updateProduct(parseId(params.id), body);
-    } catch (error) {
-      return handleError(error, set);
-    }
-  })
-  .patch("/:id/status", async ({ params, body, set }) => {
-    try {
-      const payload = body as { activo?: unknown };
-      if (typeof payload.activo !== "boolean") {
-        set.status = 400;
-        return { error: "VALIDATION_ERROR", message: "activo debe ser booleano" };
+  .post(
+    "/",
+    async ({ body, set }) => {
+      try {
+        set.status = 201;
+        return await service.createProduct(body);
+      } catch (error) {
+        return handleError(error, set);
       }
-      return await service.setProductStatus(parseId(params.id), payload.activo);
-    } catch (error) {
-      return handleError(error, set);
-    }
-  });
+    },
+    adminOnly,
+  )
+  .put(
+    "/:id",
+    async ({ params, body, set }) => {
+      try {
+        return await service.updateProduct(parseId(params.id), body);
+      } catch (error) {
+        return handleError(error, set);
+      }
+    },
+    adminOnly,
+  )
+  .patch(
+    "/:id/status",
+    async ({ params, body, set }) => {
+      try {
+        const payload = body as { activo?: unknown };
+        if (typeof payload.activo !== "boolean") {
+          set.status = 400;
+          return { error: "VALIDATION_ERROR", message: "activo debe ser booleano" };
+        }
+        return await service.setProductStatus(parseId(params.id), payload.activo);
+      } catch (error) {
+        return handleError(error, set);
+      }
+    },
+    adminOnly,
+  );

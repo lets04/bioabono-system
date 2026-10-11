@@ -1,4 +1,4 @@
-import { ApiError, apiRequest, authHeaders, handleUnauthorized } from "./client";
+import { ApiError, apiRequest, handleUnauthorized } from "./client";
 import { todayLocal } from "../utils/format";
 import type { PurchasesReport, SalesReport, InventoryReport, ProductsReport, ConsignationsReport, ReportFilters } from "../types";
 
@@ -12,7 +12,7 @@ function toQuery(filters: ReportFilters): string {
 }
 
 async function downloadExport(path: string, fallbackName: string) {
-  const res = await fetch(`/api${path}`, { method: "GET", headers: { ...authHeaders() } });
+  const res = await fetch(`/api${path}`, { method: "GET", credentials: "include" });
   if (!res.ok) {
     if (res.status === 401) handleUnauthorized();
     const data = await res.json().catch(() => null);

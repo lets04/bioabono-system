@@ -8,7 +8,7 @@ Sistema web de gestión comercial BIOABONO.
 - `backend/`: Node.js + Elysia + TypeScript + Drizzle ORM.
 - `backend/src/db/schema`: modelo relacional PostgreSQL.
 - `backend/src/modules`: módulos del monolito modular.
-- `backend/src/lib`: utilidades compartidas (stock atómico, precios, errores HTTP, rate limit, JWT, correo).
+- `backend/src/lib`: utilidades compartidas (stock atómico, precios, errores HTTP, rate limit, correo).
 - `docs/reference/`: prototipo visual original (no forma parte de la app).
 
 ## Configuración
@@ -18,12 +18,14 @@ Copie `backend/.env.example` a `backend/.env` y complete los valores. Los más i
 | Variable | Descripción |
 | --- | --- |
 | `DATABASE_URL` | Conexión a PostgreSQL. La base debe existir previamente. |
-| `JWT_SECRET` | Secreto de firma de sesiones. En producción se exigen ≥ 32 caracteres aleatorios (`openssl rand -base64 48`). |
+| `SESSION_MAX_HOURS` | Duración de una sesión normal (cookie `httpOnly` que se borra al cerrar el navegador; en la base solo se guarda el hash del token). 5 minutos antes de vencer, la app pregunta si se quiere mantener y la alarga otras tantas horas. Por defecto 8. |
+| `SESSION_REMEMBER_DAYS` | Con la casilla "Mantener sesión iniciada" del login: días sin uso tras los que vence la sesión, que sobrevive a cerrar el navegador. Por defecto 30. |
 | `FRONTEND_URL` | URL pública del frontend, usada en los enlaces de los correos. |
 | `ADMIN_USERNAME` / `ADMIN_PASSWORD` | Credenciales del administrador inicial (`db:seed-admin`). |
 | `SMTP_*` | Servidor de correo. Sin `SMTP_HOST` los correos no se envían; fuera de producción su contenido se muestra en consola. |
 | `BUSINESS_UTC_OFFSET` | Zona horaria del negocio para filtros de reportes (por defecto `-04:00`, Bolivia). |
-| `CORS_ORIGINS` | Solo si el frontend se sirve desde otro dominio (lista separada por comas). |
+| `CORS_ORIGINS` | Solo si el frontend se sirve desde otro origen (lista separada por comas). La cookie es `SameSite=Strict`: frontend y API deben compartir dominio base. |
+| `TRUST_PROXY` | `true` solo detrás de un proxy propio; si no, el rate limit ignora `X-Forwarded-For`. |
 
 ## Puesta en marcha
 
@@ -60,8 +62,13 @@ npm test            # tests unitarios (Vitest)
 
 ```bash
 npm run build                          # frontend/dist y backend/dist
+npm run db:migrate                     # antes de arrancar la versión nueva
 NODE_ENV=production npm start --workspace backend
 ```
+
+- Sirva la app por HTTPS: con `NODE_ENV=production` la cookie de sesión es `Secure` (se puede forzar con `COOKIE_SECURE`).
+- Detrás de nginx, Cloudflare u otro proxy propio, configure `TRUST_PROXY=true`; si no, todos los clientes comparten la IP del proxy en el rate limit.
+- Las sesiones se guardan en PostgreSQL (`auth_sessions`): sobreviven a reinicios y deploys. `JWT_SECRET` y `JWT_EXPIRES_IN` ya no se usan; puede quitarlos del `.env`.
 
 - Sirva `frontend/dist` con un servidor web que redirija `/api` al backend y que devuelva `index.html` para cualquier otra ruta (la app usa URLs como `/ventas` o `/reportes`).
 - El rate limiting de autenticación es en memoria: con varias instancias del API, muévalo a un almacenamiento compartido.

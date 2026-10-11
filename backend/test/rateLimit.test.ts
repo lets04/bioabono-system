@@ -21,9 +21,16 @@ describe("checkRateLimit", () => {
 });
 
 describe("clientIp", () => {
-  it("toma la primera IP de x-forwarded-for", () => {
-    expect(clientIp({ "x-forwarded-for": "10.0.0.1, 10.0.0.2" })).toBe("10.0.0.1");
-    expect(clientIp({ "x-real-ip": "10.0.0.3" })).toBe("10.0.0.3");
-    expect(clientIp({})).toBe("unknown");
+  const request = (headers: Record<string, string>, ip?: string) => ({ headers: new Headers(headers), ip });
+
+  it("sin proxy de confianza ignora las cabeceras y usa la IP del socket", () => {
+    expect(clientIp(request({ "x-forwarded-for": "10.0.0.1" }, "192.168.1.5"), false)).toBe("192.168.1.5");
+    expect(clientIp(request({}), false)).toBe("unknown");
+  });
+
+  it("con proxy de confianza toma la primera IP de x-forwarded-for", () => {
+    expect(clientIp(request({ "x-forwarded-for": "10.0.0.1, 10.0.0.2" }, "127.0.0.1"), true)).toBe("10.0.0.1");
+    expect(clientIp(request({ "x-real-ip": "10.0.0.3" }, "127.0.0.1"), true)).toBe("10.0.0.3");
+    expect(clientIp(request({}, "127.0.0.1"), true)).toBe("127.0.0.1");
   });
 });

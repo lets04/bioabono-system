@@ -1,6 +1,8 @@
-import { clearSession, getToken } from "../auth/session";
+import { clearCachedUser } from "../auth/session";
 
+// Rutas cuyo 401 no debe redirigir al login. "/auth/me" se consulta al abrir la app sin saber si hay sesión.
 const AUTH_PUBLIC_PATHS = [
+  "/auth/me",
   "/auth/login",
   "/auth/logout",
   "/auth/forgot-password",
@@ -25,17 +27,12 @@ export class ApiError extends Error {
 // Evita disparar varias redirecciones cuando fallan varias peticiones a la vez.
 let redirectingToLogin = false;
 
-export function authHeaders(): HeadersInit {
-  const token = getToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 export async function apiRequest<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`/api${path}`, {
     ...options,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      ...authHeaders(),
       ...options?.headers,
     },
   });
@@ -51,7 +48,7 @@ export async function apiRequest<T>(path: string, options?: RequestInit): Promis
 
 /** Sesión expirada o inválida: limpia la sesión y vuelve al login una sola vez. */
 export function handleUnauthorized() {
-  clearSession();
+  clearCachedUser();
   if (!redirectingToLogin && (window.location.pathname === "/" || !isPublicFrontendPath())) {
     redirectingToLogin = true;
     window.location.assign("/");
