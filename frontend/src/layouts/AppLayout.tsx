@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Menu } from "lucide-react";
 import { MobileSidebar, Sidebar, type NavItem } from "./Sidebar";
+import { HeaderAmbient } from "./AmbientBackground";
 import type { View } from "../types";
 
 type Props = {
@@ -42,7 +43,7 @@ export function AppLayout({
   }, [mobileOpen]);
 
   return (
-    <div className="h-screen overflow-hidden bg-bio-cream text-stone-800 print:h-auto print:overflow-visible print:bg-white">
+    <div className="app-enter h-screen overflow-hidden bg-bio-cream text-stone-800 print:h-auto print:overflow-visible print:bg-white">
       <a
         href="#contenido"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-bio-dark focus:shadow-lg"
@@ -64,8 +65,9 @@ export function AppLayout({
         onClose={() => setMobileOpen(false)}
       />
 
-      <main ref={mainRef} className="ml-0 h-screen min-w-0 overflow-y-auto md:ml-64 print:ml-0 print:h-auto print:overflow-visible">
+      <main ref={mainRef} className="relative ml-0 h-screen min-w-0 overflow-y-auto md:ml-64 print:ml-0 print:h-auto print:overflow-visible">
         <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-stone-200/70 bg-bio-cream/90 px-4 py-3 backdrop-blur md:px-8 md:py-5 print:hidden">
+          <HeaderAmbient />
           <button
             type="button"
             onClick={() => setMobileOpen(true)}

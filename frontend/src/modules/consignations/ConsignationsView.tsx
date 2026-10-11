@@ -26,6 +26,7 @@ import { ConsignationDetailView } from "./ConsignationDetail";
 import { ConsignationPrint } from "./ConsignationPrint";
 
 import type { ConsignationDetail } from "../../types";
+import { SearchSelect } from "../../components/ui/SearchSelect";
 
 export function ConsignationsView() {
   const queryClient = useQueryClient();
@@ -145,24 +146,19 @@ export function ConsignationsView() {
 
           {/* ESTADO */}
 
-          <select
-            aria-label="Filtrar por estado"
-            value={estado}
-            onChange={(e) =>
-              setEstado(e.target.value)
-            }
-            className="input h-11 w-full sm:w-40"
-          >
-            <option value="">Todos</option>
-
-            <option value="PENDIENTE">
-              Pendientes
-            </option>
-
-            <option value="LIQUIDADA">
-              Liquidadas
-            </option>
-          </select>
+          <div className="w-full sm:w-40">
+            <SearchSelect
+              searchable={false}
+              ariaLabel="Filtrar por estado"
+              value={estado}
+              onChange={setEstado}
+              options={[
+                { value: "", label: "Todos" },
+                { value: "PENDIENTE", label: "Pendientes" },
+                { value: "LIQUIDADA", label: "Liquidadas" },
+              ]}
+            />
+          </div>
         </div>
 
         {/* NUEVA CONSIGNACIÓN */}

@@ -6,6 +6,7 @@ import { FormError } from "../../components/ui/FormError";
 import { PresentationSelect } from "../../components/ui/PresentationSelect";
 import { dateInputToISO, hasDuplicates, money, todayLocal } from "../../utils/format";
 import type { Customer, Product } from "../../types";
+import { SearchSelect } from "../../components/ui/SearchSelect";
 
 type Line = {
   presentacionId: string;
@@ -86,16 +87,13 @@ export function ConsignationForm({ customers, products, isSaving, error, onSubmi
     <form onSubmit={handleSubmit} className="grid gap-6">
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Cliente *">
-          <select required value={clienteId} onChange={(e) => setClienteId(e.target.value)} className="input">
-            <option value="">Seleccionar cliente</option>
-            {customers
-              .filter((c) => c.activo)
-              .map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
-          </select>
+          <SearchSelect
+            required
+            value={clienteId}
+            onChange={setClienteId}
+            placeholder="Buscar cliente..."
+            options={customers.filter((c) => c.activo).map((c) => ({ value: String(c.id), label: c.nombre }))}
+          />
         </Field>
         <Field label="Fecha de entrega">
           <input type="date" value={fechaEntrega} onChange={(e) => setFechaEntrega(e.target.value)} className="input" />

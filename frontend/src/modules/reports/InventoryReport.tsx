@@ -11,6 +11,7 @@ import { useExcelExport } from "../../hooks/useExcelExport";
 import { ReportPrintPreview, ReportSummary } from "../../components/print/ReportPrintPreview";
 import { stockStatusLabel } from "../../utils/format";
 import { CategorySelect } from "../../components/ui/CategorySelect";
+import { SearchSelect } from "../../components/ui/SearchSelect";
 
 export function InventoryReport() {
   const [categoriaId, setCategoriaId] = useState("");
@@ -40,12 +41,18 @@ export function InventoryReport() {
         </div>
         <div className="grid gap-1">
           <label className="text-xs font-semibold text-stone-600">Estado stock</label>
-          <select value={estado} onChange={(event) => setEstado(event.target.value)} className="input bg-white">
-            <option value="">Todos</option>
-            <option value="normal">Normal</option>
-            <option value="bajo">Bajo</option>
-            <option value="sin">Sin stock</option>
-          </select>
+          <SearchSelect
+            searchable={false}
+            ariaLabel="Estado stock"
+            value={estado}
+            onChange={setEstado}
+            options={[
+              { value: "", label: "Todos" },
+              { value: "normal", label: "Normal" },
+              { value: "bajo", label: "Bajo" },
+              { value: "sin", label: "Sin stock" },
+            ]}
+          />
         </div>
         <div className="flex items-end gap-2">
           <button type="button" onClick={apply} className="inline-flex h-11 flex-1 items-center justify-center gap-1 rounded-lg bg-bio-green px-3 text-sm font-semibold text-white hover:bg-bio-dark"><Search size={14} /> Filtrar</button>

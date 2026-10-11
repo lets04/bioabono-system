@@ -53,13 +53,13 @@ export function ActivateAccountView() {
       ) : null}
       {info ? <AuthMessage tone="info">{info}</AuthMessage> : null}
       <Field label="Nueva contraseña" hint="Mínimo 8 caracteres.">
-        <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} autoComplete="new-password" required />
+        <PasswordInput withIcon value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} autoComplete="new-password" required />
       </Field>
       <Field label="Confirmar contraseña">
-        <PasswordInput value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} minLength={8} autoComplete="new-password" required />
+        <PasswordInput withIcon value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} minLength={8} autoComplete="new-password" required />
       </Field>
       {error ? <AuthMessage tone="error">{error}</AuthMessage> : null}
-      <button type="submit" disabled={loading || !token} className="btn-primary">
+      <button type="submit" disabled={loading || !token} className="btn-primary auth-shine">
         {loading ? "Activando..." : "Activar cuenta"}
       </button>
     </AuthShell>

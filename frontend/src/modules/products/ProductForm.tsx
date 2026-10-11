@@ -6,6 +6,7 @@ import { CategorySelect } from "../../components/ui/CategorySelect";
 import { money } from "../../utils/format";
 import { derivedPrices, previewCodigo, productToForm, productUnits } from "../../utils/product";
 import type { Category, Product, ProductFormState } from "../../types";
+import { SearchSelect } from "../../components/ui/SearchSelect";
 
 type Props = {
   product?: Product;
@@ -125,13 +126,12 @@ export function ProductForm({ product, categories, isSaving, error, onSubmit }: 
                     <input required min="0.01" step="0.01" type="number" value={pres.cantidad} onChange={(e) => updatePres(idx, "cantidad", e.target.value)} className="input" />
                   </Field>
                   <Field label="Unidad">
-                    <select value={pres.unidadMedida} onChange={(e) => updatePres(idx, "unidadMedida", e.target.value)} className="input">
-                      {productUnits.map((u) => (
-                        <option key={u} value={u}>
-                          {u}
-                        </option>
-                      ))}
-                    </select>
+                    <SearchSelect
+                      searchable={false}
+                      value={pres.unidadMedida}
+                      onChange={(value) => updatePres(idx, "unidadMedida", value)}
+                      options={productUnits.map((u) => ({ value: u, label: u }))}
+                    />
                   </Field>
                   <Field label="PVP (Bs)">
                     <input required min="0" step="0.01" type="number" value={pres.pvp} onChange={(e) => updatePres(idx, "pvp", e.target.value)} className="input" />

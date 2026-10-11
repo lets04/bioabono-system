@@ -11,7 +11,8 @@ type AuthContextValue = {
   isReady: boolean;
   /** Momento (reloj local) en que vence una sesión normal; null si es "Mantener sesión iniciada". */
   sessionDeadline: number | null;
-  login: (username: string, password: string, remember: boolean) => Promise<void>;
+  /** `beforeEnter` corre con las credenciales ya aceptadas y antes de mostrar la app (p. ej. una animación). */
+  login: (username: string, password: string, remember: boolean, beforeEnter?: () => Promise<void>) => Promise<void>;
   logout: () => Promise<void>;
   /** Vuelve a consultar el vencimiento (otra pestaña pudo haber alargado la sesión). */
   refreshSession: () => Promise<SessionCheck>;
@@ -66,8 +67,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       isReady,
       sessionDeadline,
-      login: async (username, password, remember) => {
-        applySession(await authApi.login(username, password, remember));
+      login: async (username, password, remember, beforeEnter) => {
+        const session = await authApi.login(username, password, remember);
+        await beforeEnter?.();
+        applySession(session);
       },
       logout: async () => {
         try {

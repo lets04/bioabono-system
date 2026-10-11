@@ -10,6 +10,7 @@ import { reportsApi } from "../../api/reports";
 import { useExcelExport } from "../../hooks/useExcelExport";
 import type { ReportFilters } from "../../types";
 import { ReportPrintPreview, ReportSummary } from "../../components/print/ReportPrintPreview";
+import { SearchSelect } from "../../components/ui/SearchSelect";
 
 export function PurchaseReport() {
   const [from, setFrom] = useState("");
@@ -51,14 +52,16 @@ export function PurchaseReport() {
         </div>
         <div className="grid gap-1">
           <label className="text-xs font-semibold text-stone-600">Proveedor</label>
-          <select value={proveedorId} onChange={(e) => setProveedorId(e.target.value)} className="input bg-white">
-            <option value="">Todos</option>
-            {(suppliersQuery.data ?? []).map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.nombre}
-              </option>
-            ))}
-          </select>
+          <SearchSelect
+            ariaLabel="Proveedor"
+            value={proveedorId}
+            onChange={setProveedorId}
+            placeholder="Buscar proveedor..."
+            options={[
+              { value: "", label: "Todos" },
+              ...(suppliersQuery.data ?? []).map((s) => ({ value: String(s.id), label: s.nombre })),
+            ]}
+          />
         </div>
         <div className="flex items-end gap-2">
           <button onClick={apply} className="inline-flex h-11 flex-1 items-center justify-center gap-1 rounded-lg bg-bio-green px-3 text-sm font-semibold text-white">

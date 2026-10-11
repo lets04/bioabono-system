@@ -11,6 +11,7 @@ import { reportsApi } from "../../api/reports";
 import { useExcelExport } from "../../hooks/useExcelExport";
 import { ReportPrintPreview, ReportSummary } from "../../components/print/ReportPrintPreview";
 import { CategorySelect } from "../../components/ui/CategorySelect";
+import { SearchSelect } from "../../components/ui/SearchSelect";
 
 type ProductStatus = "Inactivo" | "Sin stock" | "Bajo" | "Normal";
 
@@ -52,14 +53,20 @@ export function ProductReport() {
         </div>
         <div className="grid gap-1">
           <label className="text-xs font-semibold text-stone-600">Estado</label>
-          <select value={estado} onChange={(e) => setEstado(e.target.value)} className="input bg-white">
-            <option value="">Todos</option>
-            <option value="activo">Activo</option>
-            <option value="inactivo">Inactivo</option>
-            <option value="bajo">Stock bajo</option>
-            <option value="sin">Sin stock</option>
-            <option value="normal">Stock normal</option>
-          </select>
+          <SearchSelect
+            searchable={false}
+            ariaLabel="Estado"
+            value={estado}
+            onChange={setEstado}
+            options={[
+              { value: "", label: "Todos" },
+              { value: "activo", label: "Activo" },
+              { value: "inactivo", label: "Inactivo" },
+              { value: "bajo", label: "Stock bajo" },
+              { value: "sin", label: "Sin stock" },
+              { value: "normal", label: "Stock normal" },
+            ]}
+          />
         </div>
         <div className="flex items-end gap-2">
           <button onClick={apply} className="inline-flex h-11 flex-1 items-center justify-center gap-1 rounded-lg bg-bio-green px-3 text-sm font-semibold text-white">

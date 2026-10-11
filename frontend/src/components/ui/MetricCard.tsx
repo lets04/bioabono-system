@@ -28,7 +28,7 @@ export function MetricCard({ label, value, icon: Icon, hint, tone = "default", o
     </>
   );
 
-  const base = `rounded-xl border bg-white p-4 text-left shadow-sm ${warning ? "border-amber-200" : "border-stone-200"}`;
+  const base = `vine-corners rounded-xl border bg-white p-4 text-left shadow-sm ${warning ? "border-amber-200" : "border-stone-200"}`;
   if (!onClick) return <div className={base}>{content}</div>;
   return (
     <button type="button" onClick={onClick} className={`${base} transition hover:-translate-y-0.5 hover:shadow-md ${warning ? "hover:border-amber-300" : "hover:border-bio-green"}`}>

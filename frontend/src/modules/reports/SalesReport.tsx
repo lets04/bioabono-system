@@ -10,6 +10,7 @@ import { money, priceTypeLabel } from "../../utils/format";
 import { reportsApi } from "../../api/reports";
 import { useExcelExport } from "../../hooks/useExcelExport";
 import { ReportPrintPreview, ReportSummary } from "../../components/print/ReportPrintPreview";
+import { SearchSelect } from "../../components/ui/SearchSelect";
 
 export function SalesReport() {
   const [from, setFrom] = useState("");
@@ -53,25 +54,33 @@ export function SalesReport() {
         </div>
         <div className="grid gap-1">
           <label className="text-xs font-semibold text-stone-600">Cliente</label>
-          <select value={clienteId} onChange={(e) => setClienteId(e.target.value)} className="input bg-white">
-            <option value="">Todos</option>
-            <option value="null">Cliente mostrador</option>
-            {(customersQuery.data ?? []).map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nombre}
-              </option>
-            ))}
-          </select>
+          <SearchSelect
+            ariaLabel="Cliente"
+            value={clienteId}
+            onChange={setClienteId}
+            placeholder="Buscar cliente..."
+            options={[
+              { value: "", label: "Todos" },
+              { value: "null", label: "Cliente mostrador" },
+              ...(customersQuery.data ?? []).map((c) => ({ value: String(c.id), label: c.nombre })),
+            ]}
+          />
         </div>
         <div className="grid gap-1">
           <label className="text-xs font-semibold text-stone-600">Tipo precio</label>
-          <select value={tipoPrecio} onChange={(e) => setTipoPrecio(e.target.value)} className="input bg-white">
-            <option value="">Todos</option>
-            <option value="PVP">PVP</option>
-            <option value="CONSIGNACION">P CONS</option>
-            <option value="CONTADO">PVC</option>
-            <option value="MAYORISTA">PVM</option>
-          </select>
+          <SearchSelect
+            searchable={false}
+            ariaLabel="Tipo precio"
+            value={tipoPrecio}
+            onChange={setTipoPrecio}
+            options={[
+              { value: "", label: "Todos" },
+              { value: "PVP", label: "PVP" },
+              { value: "CONSIGNACION", label: "P CONS" },
+              { value: "CONTADO", label: "PVC" },
+              { value: "MAYORISTA", label: "PVM" },
+            ]}
+          />
         </div>
         <div className="flex items-end gap-2">
           <button onClick={apply} className="inline-flex h-11 flex-1 items-center justify-center gap-1 rounded-lg bg-bio-green px-3 text-sm font-semibold text-white">

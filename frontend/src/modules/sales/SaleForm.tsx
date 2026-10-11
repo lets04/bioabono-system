@@ -6,6 +6,7 @@ import { FormError } from "../../components/ui/FormError";
 import { PresentationSelect } from "../../components/ui/PresentationSelect";
 import { dateInputToISO, hasDuplicates, money, todayLocal } from "../../utils/format";
 import type { Customer, Product } from "../../types";
+import { SearchSelect } from "../../components/ui/SearchSelect";
 
 type Line = {
   presentacionId: string;
@@ -125,26 +126,30 @@ export function SaleForm({ customers, products, isSaving, error, onSubmit, onCan
     <form onSubmit={handleSubmit} className="grid gap-6">
       <div className="grid gap-4 sm:grid-cols-3">
         <Field label="Cliente">
-          <select value={clienteId} onChange={(e) => setClienteId(e.target.value)} className="input">
-            <option value="">Cliente mostrador</option>
-            {customers
-              .filter((c) => c.activo)
-              .map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
-          </select>
+          <SearchSelect
+            value={clienteId}
+            onChange={setClienteId}
+            placeholder="Buscar cliente..."
+            options={[
+              { value: "", label: "Cliente mostrador" },
+              ...customers.filter((c) => c.activo).map((c) => ({ value: String(c.id), label: c.nombre })),
+            ]}
+          />
         </Field>
         <Field label="Fecha">
           <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className="input" />
         </Field>
         <Field label="Tipo de precio">
-          <select value={tipoPrecio} onChange={(e) => setTipoPrecio(e.target.value as TipoPrecio)} className="input">
-            <option value="PVP">PVP</option>
-            <option value="CONTADO">PVC (×0.75)</option>
-            <option value="MAYORISTA">PVM (×0.70)</option>
-          </select>
+          <SearchSelect
+            searchable={false}
+            value={tipoPrecio}
+            onChange={(value) => setTipoPrecio(value as TipoPrecio)}
+            options={[
+              { value: "PVP", label: "PVP" },
+              { value: "CONTADO", label: "PVC (×0.75)" },
+              { value: "MAYORISTA", label: "PVM (×0.70)" },
+            ]}
+          />
         </Field>
       </div>
 

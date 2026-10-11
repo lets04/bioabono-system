@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Field } from "../../components/ui/Field";
 import type { UserInvitePayload, UserRole } from "../../types";
+import { SearchSelect } from "../../components/ui/SearchSelect";
 
 type Props = {
   onSubmit: (payload: UserInvitePayload) => void;
@@ -27,10 +28,15 @@ export function UserForm({ onSubmit, isSubmitting, error }: Props) {
         <input className="input" type="email" value={username} onChange={(e) => setUsername(e.target.value)} required maxLength={160} />
       </Field>
       <Field label="Rol">
-        <select className="input" value={rol} onChange={(e) => setRol(e.target.value as UserRole)}>
-          <option value="EMPLEADO">Empleado</option>
-          <option value="ADMIN">Administrador</option>
-        </select>
+        <SearchSelect
+          searchable={false}
+          value={rol}
+          onChange={(value) => setRol(value as UserRole)}
+          options={[
+            { value: "EMPLEADO", label: "Empleado" },
+            { value: "ADMIN", label: "Administrador" },
+          ]}
+        />
       </Field>
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       <button type="submit" disabled={isSubmitting} className="btn-primary">

@@ -101,6 +101,46 @@ body {
   .table-body > tr {
     @apply transition-colors hover:bg-bio-cream/70;
   }
+
+  /* Ramitas decorativas en las esquinas superior izquierda e inferior derecha.
+     El dibujo no se aleja más de ~10px del borde para no tapar texto (el padding de las tarjetas es mayor). */
+  .vine-corners,
+  .table-card,
+  .form-section {
+    position: relative;
+  }
+
+  .vine-corners::before,
+  .vine-corners::after,
+  .table-card::before,
+  .table-card::after,
+  .form-section::before,
+  .form-section::after {
+    content: "";
+    @apply pointer-events-none absolute z-[1] h-16 w-16 bg-contain bg-no-repeat;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='40' y2='40' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='.45' stop-color='white'/%3E%3Cstop offset='.8' stop-color='white' stop-opacity='0'/%3E%3C/linearGradient%3E%3Cmask id='m'%3E%3Crect width='64' height='64' fill='url(%23g)'/%3E%3C/mask%3E%3C/defs%3E%3Cg mask='url(%23m)'%3E%3Cpath d='M1.5 58V13Q1.5 1.5 13 1.5H58' fill='none' stroke='%23467d2a' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath fill='%23467d2a' d='M2 22c4 1 6 4 6 9c-4-1-6-4-6-9zM22 2c1 4 4 6 9 6c-1-4-4-6-9-6z'/%3E%3Cpath fill='%238dbb5a' d='M2 38c4 1 6 4 6 9c-4-1-6-4-6-9zM38 2c1 4 4 6 9 6c-1-4-4-6-9-6zM4 4c4 0 7 2 7 6c-4 0-7-2-7-6z'/%3E%3C/g%3E%3C/svg%3E");
+  }
+
+  .vine-corners::before,
+  .table-card::before,
+  .form-section::before {
+    @apply left-0 top-0;
+  }
+
+  .vine-corners::after,
+  .table-card::after,
+  .form-section::after {
+    @apply bottom-0 right-0 rotate-180;
+  }
+
+  /* Enredadera ondulada que recorre el borde inferior del encabezado; el patrón de 80px empalma sin cortes. */
+  .header-vine {
+    @apply pointer-events-none absolute inset-x-0 bottom-0 h-3 opacity-70;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 12'%3E%3Cpath d='M0 9C20 9 20 5 40 5S60 9 80 9' fill='none' stroke='%23467d2a' stroke-width='1.2'/%3E%3Cpath fill='%23467d2a' d='M14 8.5c2-3 5-4 8-4c-1 3-4 4-8 4zM52 6c3-1 6 0 8 3c-3 1-6 0-8-3z'/%3E%3Cpath fill='%238dbb5a' d='M34 5.5c-1-3 1-5 4-5c0 3-2 5-4 5zM70 8.5c1-3 4-4 7-3.5c-1 3-4 4-7 3.5z'/%3E%3C/svg%3E");
+    background-repeat: repeat-x;
+    background-size: 80px 12px;
+    mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+  }
 }
 
 @keyframes fade-in {
@@ -124,9 +164,177 @@ body {
   .animate-slide-up { animation: slide-up 200ms ease-out; }
 }
 
+/* ---------- Pantallas de acceso (login, activar cuenta, recuperar contraseña) ---------- */
+
+@keyframes auth-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes auth-card-in {
+  from { opacity: 0; transform: translateY(18px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Manchas de luz difusas que se desplazan lentamente ("aurora"). */
+@keyframes auth-drift {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(40px, -30px, 0) scale(1.12); }
+  100% { transform: translate3d(-30px, 25px, 0) scale(0.95); }
+}
+
+/* Hojas decorativas que suben flotando y se desvanecen. */
+@keyframes auth-leaf {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotate(0deg); }
+  15% { opacity: 0.55; }
+  85% { opacity: 0.35; }
+  100% { opacity: 0; transform: translate3d(60px, -340px, 0) rotate(160deg); }
+}
+
+/* Hojas que caen balanceándose (lado del formulario). */
+@keyframes ambient-leaf-fall {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotate(0deg); }
+  10% { opacity: var(--opacity, 0.45); }
+  25% { transform: translate3d(35px, 25vh, 0) rotate(70deg); }
+  50% { transform: translate3d(-25px, 52vh, 0) rotate(160deg); }
+  75% { transform: translate3d(30px, 78vh, 0) rotate(250deg); }
+  90% { opacity: var(--opacity, 0.45); }
+  100% { opacity: 0; transform: translate3d(-10px, 108vh, 0) rotate(330deg); }
+}
+
+@keyframes auth-card-out {
+  to { opacity: 0; transform: translateY(-12px) scale(0.96); filter: blur(2px); }
+}
+
+@keyframes auth-check {
+  0% { transform: scale(0) rotate(-45deg); }
+  70% { transform: scale(1.25) rotate(0deg); }
+  100% { transform: scale(1); }
+}
+
+/* Solo opacidad: un transform en el contenedor de la app descolocaría los modales (position: fixed). */
+@keyframes app-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Hojas que cruzan de lado a lado con un leve vaivén (encabezado de la app). */
+@keyframes ambient-leaf-drift {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotate(0deg); }
+  8% { opacity: var(--opacity, 0.3); }
+  25% { transform: translate3d(28vw, 8px, 0) rotate(90deg); }
+  50% { transform: translate3d(55vw, -6px, 0) rotate(180deg); }
+  75% { transform: translate3d(82vw, 7px, 0) rotate(270deg); }
+  92% { opacity: var(--opacity, 0.3); }
+  100% { opacity: 0; transform: translate3d(110vw, 0, 0) rotate(360deg); }
+}
+
+@keyframes auth-shine {
+  from { transform: translateX(-120%) skewX(-20deg); }
+  to { transform: translateX(220%) skewX(-20deg); }
+}
+
+@keyframes auth-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+@layer components {
+  /* Entrada escalonada: cada elemento define su retraso con --delay. */
+  .auth-rise {
+    animation: auth-rise 600ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    animation-delay: var(--delay, 0ms);
+  }
+
+  .auth-card {
+    animation: auth-card-in 700ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+
+  .auth-card-out {
+    animation: auth-card-out 450ms 250ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  }
+
+  .auth-check {
+    animation: auth-check 400ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+  }
+
+  .app-enter {
+    animation: app-enter 450ms ease-out backwards;
+  }
+
+  /* Los campos del formulario aparecen uno tras otro después de la tarjeta. */
+  .auth-stagger > * {
+    animation: auth-rise 550ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+  .auth-stagger > *:nth-child(1) { animation-delay: 250ms; }
+  .auth-stagger > *:nth-child(2) { animation-delay: 320ms; }
+  .auth-stagger > *:nth-child(3) { animation-delay: 390ms; }
+  .auth-stagger > *:nth-child(4) { animation-delay: 460ms; }
+  .auth-stagger > *:nth-child(5) { animation-delay: 530ms; }
+  .auth-stagger > *:nth-child(n + 6) { animation-delay: 600ms; }
+  /* Un error que aparece después de la carga se sacude para llamar la atención. */
+  .auth-stagger > [role="alert"] { animation: auth-shake 420ms ease-in-out; }
+
+  .ambient-blob {
+    @apply pointer-events-none absolute rounded-full blur-3xl;
+    animation: auth-drift var(--duration, 18s) ease-in-out infinite alternate;
+    animation-delay: var(--delay, 0s);
+  }
+
+  .auth-leaf {
+    @apply pointer-events-none absolute text-bio-light;
+    animation: auth-leaf var(--duration, 14s) linear infinite;
+    animation-delay: var(--delay, 0s);
+  }
+
+  .ambient-leaf-fall {
+    @apply pointer-events-none absolute -top-10;
+    animation: ambient-leaf-fall var(--duration, 16s) linear infinite;
+    animation-delay: var(--delay, 0s);
+  }
+
+  .ambient-leaf-drift {
+    @apply pointer-events-none absolute;
+    animation: ambient-leaf-drift var(--duration, 50s) linear infinite;
+    animation-delay: var(--delay, 0s);
+  }
+
+  /* Textura de puntos que se desvanece hacia los bordes. */
+  .ambient-dots {
+    @apply pointer-events-none absolute inset-0;
+    background-image: radial-gradient(rgb(255 255 255 / 0.09) 1px, transparent 1px);
+    background-size: 22px 22px;
+    mask-image: radial-gradient(ellipse at 30% 40%, black 20%, transparent 75%);
+  }
+
+  /* Destello que cruza el botón principal al pasar el mouse. */
+  .auth-shine {
+    @apply relative overflow-hidden;
+  }
+  .auth-shine::after {
+    content: "";
+    @apply pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/25 to-transparent;
+    transform: translateX(-120%) skewX(-20deg);
+  }
+  .auth-shine:hover:not(:disabled)::after {
+    animation: auth-shine 900ms ease-out;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+  /* Sin movimiento, las hojas decorativas no aportan nada. */
+  .auth-leaf, .ambient-leaf-fall, .ambient-leaf-drift { display: none; }
+}
+
+@media print {
+  .vine-corners::before, .vine-corners::after,
+  .table-card::before, .table-card::after,
+  .form-section::before, .form-section::after { display: none; }
 }

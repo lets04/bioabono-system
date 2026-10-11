@@ -6,6 +6,7 @@ import { FormError } from "../../components/ui/FormError";
 import { PresentationSelect } from "../../components/ui/PresentationSelect";
 import { dateInputToISO, money, todayLocal } from "../../utils/format";
 import type { Product, Supplier } from "../../types";
+import { SearchSelect } from "../../components/ui/SearchSelect";
 
 type Line = {
   presentacionId: string;
@@ -76,16 +77,13 @@ export function PurchaseForm({ suppliers, products, isSaving, error, onSubmit, o
     <form onSubmit={handleSubmit} className="grid gap-6">
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Proveedor *">
-          <select required value={proveedorId} onChange={(e) => setProveedorId(e.target.value)} className="input">
-            <option value="">Seleccionar proveedor</option>
-            {suppliers
-              .filter((s) => s.activo)
-              .map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.nombre}
-                </option>
-              ))}
-          </select>
+          <SearchSelect
+            required
+            value={proveedorId}
+            onChange={setProveedorId}
+            placeholder="Buscar proveedor..."
+            options={suppliers.filter((s) => s.activo).map((s) => ({ value: String(s.id), label: s.nombre }))}
+          />
         </Field>
         <Field label="Fecha">
           <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className="input" />

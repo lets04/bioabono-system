@@ -6,6 +6,7 @@ import { DataState } from "../../components/ui/DataState";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { money } from "../../utils/format";
 import { ReportPrintPreview, ReportSummary } from "../../components/print/ReportPrintPreview";
+import { SearchSelect } from "../../components/ui/SearchSelect";
 
 export function ConsignationsReport() {
   const [from, setFrom] = useState("");
@@ -43,11 +44,17 @@ export function ConsignationsReport() {
         </div>
         <div className="grid gap-1">
           <label className="text-xs font-semibold text-stone-600">Estado</label>
-          <select value={estado} onChange={(e) => setEstado(e.target.value)} className="input bg-white">
-            <option value="">Todos</option>
-            <option value="PENDIENTE">Pendientes</option>
-            <option value="LIQUIDADA">Liquidadas</option>
-          </select>
+          <SearchSelect
+            searchable={false}
+            ariaLabel="Estado"
+            value={estado}
+            onChange={setEstado}
+            options={[
+              { value: "", label: "Todos" },
+              { value: "PENDIENTE", label: "Pendientes" },
+              { value: "LIQUIDADA", label: "Liquidadas" },
+            ]}
+          />
         </div>
         <div className="flex items-end gap-2">
           <button onClick={apply} className="inline-flex h-11 flex-1 items-center justify-center gap-1 rounded-lg bg-bio-green px-3 text-sm font-semibold text-white">

@@ -22,6 +22,10 @@ type Props = {
   placeholder?: string;
   /** Ancho mínimo de la lista (px), útil cuando el campo es angosto. */
   minListWidth?: number;
+  /** false: lista corta sin buscador (estado, rol, unidad...); el campo solo abre la lista. */
+  searchable?: boolean;
+  /** Nombre accesible cuando el campo no está dentro de un <label>. */
+  ariaLabel?: string;
 };
 
 const normalize = (text: string) =>
@@ -36,7 +40,16 @@ function optionStateClass(disabled: boolean | undefined, active: boolean) {
   return "border-transparent hover:bg-bio-cream";
 }
 
-export function SearchSelect({ options, value, onChange, required, placeholder = "Buscar...", minListWidth = 260 }: Props) {
+export function SearchSelect({
+  options,
+  value,
+  onChange,
+  required,
+  placeholder = "Buscar...",
+  searchable = true,
+  minListWidth = searchable ? 260 : 0,
+  ariaLabel,
+}: Props) {
   const listId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
@@ -48,13 +61,13 @@ export function SearchSelect({ options, value, onChange, required, placeholder =
   const selected = options.find((o) => o.value === value);
 
   const filtered = useMemo(() => {
-    const tokens = normalize(query).split(/\s+/).filter(Boolean);
+    const tokens = searchable ? normalize(query).split(/\s+/).filter(Boolean) : [];
     if (tokens.length === 0) return options;
     return options.filter((o) => {
       const haystack = normalize(`${o.label} ${o.keywords ?? ""}`);
       return tokens.every((t) => haystack.includes(t));
     });
-  }, [options, query]);
+  }, [options, query, searchable]);
 
   // La lista vive en un portal con posición fija para que el scroll de modales o tarjetas no la recorte.
   useLayoutEffect(() => {
@@ -144,17 +157,22 @@ export function SearchSelect({ options, value, onChange, required, placeholder =
 
   return (
     <div className="relative">
-      <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-bio-green" aria-hidden="true" />
+      {searchable ? (
+        <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-bio-green" aria-hidden="true" />
+      ) : null}
       <input
         ref={inputRef}
         role="combobox"
         aria-expanded={open}
         aria-controls={listId}
-        aria-autocomplete="list"
+        aria-autocomplete={searchable ? "list" : undefined}
         aria-activedescendant={open && filtered[activeIndex] ? `${listId}-${activeIndex}` : undefined}
-        value={open ? query : selectedText}
+        aria-label={ariaLabel}
+        readOnly={!searchable}
+        value={open && searchable ? query : selectedText}
         placeholder={open && selectedText ? selectedText : placeholder}
         onChange={(e) => {
+          if (!searchable) return;
           setQuery(e.target.value);
           setActiveIndex(0);
           if (!open) setOpen(true);
@@ -162,7 +180,7 @@ export function SearchSelect({ options, value, onChange, required, placeholder =
         onFocus={openList}
         onClick={openList}
         onKeyDown={onKeyDown}
-        className={`input truncate pl-9 pr-9 ${selected && selected.value !== "" && !open ? "font-medium text-bio-dark" : ""}`}
+        className={`input truncate pr-9 ${searchable ? "pl-9" : "cursor-pointer caret-transparent"} ${selected && selected.value !== "" && !open ? "font-medium text-bio-dark" : ""}`}
         autoComplete="off"
       />
       <ChevronDown

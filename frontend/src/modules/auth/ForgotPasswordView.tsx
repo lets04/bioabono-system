@@ -40,7 +40,7 @@ export function ForgotPasswordView() {
       </Field>
       {message ? <AuthMessage tone="success">{message}</AuthMessage> : null}
       {error ? <AuthMessage tone="error">{error}</AuthMessage> : null}
-      <button type="submit" disabled={loading} className="btn-primary">
+      <button type="submit" disabled={loading} className="btn-primary auth-shine">
         {loading ? "Enviando..." : "Enviar enlace"}
       </button>
     </AuthShell>

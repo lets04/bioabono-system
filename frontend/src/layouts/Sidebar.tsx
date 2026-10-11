@@ -4,6 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import type { View } from "../types";
 import { brandMark as logoBioabono } from "../brand";
 import { useAuth } from "../auth/AuthContext";
+import { SidebarAmbient } from "./AmbientBackground";
 
 export type NavItem = {
   id: View;
@@ -138,7 +139,8 @@ export function Sidebar({
   onNavigate,
 }: Props) {
   return (
-    <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col bg-bio-dark text-white md:flex print:hidden">
+    <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col overflow-hidden bg-gradient-to-b from-bio-dark to-[#1a3016] text-white md:flex print:hidden">
+      <SidebarAmbient />
       <button
         type="button"
         onClick={() => onNavigate("dashboard")}
@@ -182,13 +184,14 @@ export function MobileSidebar({
       />
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col bg-bio-dark text-white shadow-2xl transition-[transform,visibility] duration-300 md:hidden print:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col overflow-hidden bg-gradient-to-b from-bio-dark to-[#1a3016] text-white shadow-2xl transition-[transform,visibility] duration-300 md:hidden print:hidden ${
           isOpen
             ? "visible translate-x-0"
             : "invisible -translate-x-full"
         }`}
         aria-hidden={!isOpen}
       >
+        <SidebarAmbient />
         <div className="relative flex h-24 shrink-0 items-center justify-center border-b border-white/10 px-4">
           <button
             type="button"
