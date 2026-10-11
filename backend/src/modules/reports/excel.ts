@@ -3,14 +3,14 @@ import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { derivedPrices } from "../../lib/pricing.js";
 
-const BIO_DARK = "24421F";
+const BIO_DARK = "222222";
 const BIO_GREEN = "467D2A";
 const HEADER_FILL = {
   type: "pattern",
   pattern: "solid",
-  fgColor: { argb: BIO_DARK },
+  fgColor: { argb: "D1D5DB" },
 } as const;
-const HEADER_FONT = { color: { argb: "FFFFFFFF" }, bold: true, size: 10 };
+const HEADER_FONT = { color: { argb: "111111" }, bold: true, size: 10 };
 const SUBTITLE_FONT = { color: { argb: "6B7280" }, size: 9 };
 // Mismo nivel relativo desde src/ (tsx) y dist/ (build): backend/assets
 const LOGO_PATH = fileURLToPath(
@@ -98,8 +98,8 @@ function addReportHeader(
   const logoId = addBioabonoLogo(wb);
 
   // Alturas del encabezado
-  ws.getRow(1).height = 58;
-  ws.getRow(2).height = 20;
+  ws.getRow(1).height = 56;
+  ws.getRow(2).height = 19;
   ws.getRow(3).height = 18;
   ws.getRow(4).height = 18;
   ws.getRow(5).height = 18;
@@ -112,8 +112,8 @@ function addReportHeader(
     ws.addImage(logoId, {
       tl: { col: 0.10, row: 0.05 },
       ext: {
-        width: 180,
-        height: 75,
+        width: 150,
+        height: 62,
       },
     });
   }
@@ -126,7 +126,7 @@ function addReportHeader(
 
   const titleCell = ws.getCell(1, 3);
 
-  titleCell.value = `BIOABONO — ${title}`;
+  titleCell.value = `SUPERMERCADO DEL BIOABONO — ${title}`;
 
   titleCell.font = {
     color: { argb: BIO_DARK },
@@ -146,12 +146,12 @@ function addReportHeader(
 
   const subCell = ws.getCell(2, 3);
 
-  subCell.value = "Gestión comercial — 100% Orgánico y Ecológico";
+  subCell.value = "Calle Reza #477 (Puente Cobija)  |  Celular: 67465453";
 
   subCell.font = {
-    color: { argb: BIO_GREEN },
+    color: { argb: BIO_DARK },
     size: 9,
-    italic: true,
+    bold: true,
   };
 
   subCell.alignment = {
@@ -356,7 +356,9 @@ export async function buildPurchasesWorkbook(
     { width: 14 },
   ];
 
-  ws.views = [{ state: "frozen", ySplit: 8, xSplit: 0 }];
+  ws.views = [{ state: "frozen", ySplit: 8 }];
+  ws.pageSetup = { paperSize: 9, orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.25, right: 0.25, top: 0.4, bottom: 0.4, header: 0.15, footer: 0.15 } };
+  ws.pageSetup.printTitlesRow = "8:8";
   ws.autoFilter = {
     from: { row: 8, column: 1 },
     to: { row: 8, column: colCount },
@@ -515,6 +517,8 @@ export async function buildSalesWorkbook(
     { width: 14 },
   ];
   ws.views = [{ state: "frozen", ySplit: 8 }];
+  ws.pageSetup = { paperSize: 9, orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.25, right: 0.25, top: 0.4, bottom: 0.4, header: 0.15, footer: 0.15 } };
+  ws.pageSetup.printTitlesRow = "8:8";
   ws.autoFilter = {
     from: { row: 8, column: 1 },
     to: { row: 8, column: colCount },
@@ -623,6 +627,8 @@ export async function buildInventoryWorkbook(
     { width: 14 },
   ];
   ws.views = [{ state: "frozen", ySplit: 8 }];
+  ws.pageSetup = { paperSize: 9, orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.25, right: 0.25, top: 0.4, bottom: 0.4, header: 0.15, footer: 0.15 } };
+  ws.pageSetup.printTitlesRow = "8:8";
   ws.autoFilter = {
     from: { row: 8, column: 1 },
     to: { row: 8, column: colCount },
@@ -752,6 +758,8 @@ export async function buildProductsWorkbook(
     { width: 12 },
   ];
   ws.views = [{ state: "frozen", ySplit: 8 }];
+  ws.pageSetup = { paperSize: 9, orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.25, right: 0.25, top: 0.4, bottom: 0.4, header: 0.15, footer: 0.15 } };
+  ws.pageSetup.printTitlesRow = "8:8";
   ws.autoFilter = {
     from: { row: 8, column: 1 },
     to: { row: 8, column: colCount },
