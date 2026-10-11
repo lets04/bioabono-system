@@ -83,6 +83,15 @@ export function PrintPreview({
               break-inside: avoid;
               page-break-inside: avoid;
             }
+            #${printAreaId} .print-document-header { border-color: #222 !important; padding-bottom: 10px !important; }
+            #${printAreaId} h1, #${printAreaId} h2 { color: #111 !important; }
+            #${printAreaId} table { border-collapse: collapse !important; font-size: 9pt !important; }
+            #${printAreaId} th, #${printAreaId} td { border: 1px solid #777 !important; padding: 5px 6px !important; color: #111 !important; background: #fff !important; }
+            #${printAreaId} thead th { background: #eee !important; font-weight: 700 !important; }
+            #${printAreaId} .print-total { border: 1.5px solid #222 !important; padding: 8px 10px !important; margin-top: 10px !important; }
+            #${printAreaId} .print-signatures { break-inside: avoid; page-break-inside: avoid; }
+            #${printAreaId} .print-signature-line { border-top: 1px solid #222 !important; padding-top: 6px !important; text-align: center !important; font-size: 9pt !important; }
+            #${printAreaId} .text-bio-dark, #${printAreaId} .text-bio-green { color: #222 !important; }
             @page {
               size: ${pageSize};
               margin: 10mm;
@@ -143,7 +152,7 @@ export function PrintPreview({
           </div>
 
           <div className="print-scroll-area flex-1 overflow-auto bg-stone-200 p-4 sm:p-8">
-            <div id={printAreaId} className="mx-auto min-h-[900px] w-full max-w-[1100px] bg-white p-6 shadow-xl sm:p-8">
+            <div id={printAreaId} className="print-document mx-auto min-h-[900px] w-full max-w-[1100px] bg-white p-6 text-stone-900 shadow-xl sm:p-8">
               {children}
             </div>
           </div>
