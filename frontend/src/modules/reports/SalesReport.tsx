@@ -96,7 +96,7 @@ export function SalesReport() {
 
       {!reportQuery.isLoading && !reportQuery.isError && reportQuery.data && (
         <>
-          <div className="grid gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div className="rounded-lg border border-stone-200 bg-white p-4">
               <div className="text-xs text-stone-500">Cantidad ventas</div>
               <div className="text-xl font-bold text-bio-dark">{reportQuery.data.summary.cantidadVentas}</div>
@@ -130,7 +130,7 @@ export function SalesReport() {
           <div className="overflow-hidden rounded-lg border border-stone-200 bg-white">
             <div className="bg-stone-50 px-4 py-2 text-xs font-semibold uppercase text-stone-500">Detalle — precio histórico de sale_details</div>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1000px] text-left text-sm">
+              <table className="table-stack w-full min-w-[1000px] text-left text-sm">
                 <thead className="bg-stone-50 text-xs text-stone-500">
                   <tr>
                     <th className="px-3 py-2">Fecha</th>
@@ -148,23 +148,25 @@ export function SalesReport() {
                 <tbody className="table-body divide-y divide-stone-100">
                   {reportQuery.data.rows.map((r, idx) => (
                     <tr key={`${r.id}-${r.presentacionId}-${idx}`}>
-                      <td className="px-3 py-2 text-xs">{new Date(r.fecha).toLocaleDateString("es-BO")}</td>
+                      <td data-label="Fecha" className="px-3 py-2 text-xs">{new Date(r.fecha).toLocaleDateString("es-BO")}</td>
                       <td className="px-3 py-2 font-mono text-xs">{r.numero}</td>
-                      <td className="px-3 py-2">
-                        {r.clienteNombre ?? "Mostrador"}
-                        {r.consignacionNumero && <span className="mt-0.5 block max-w-fit rounded bg-bio-green/10 px-1.5 py-0.5 text-[10px] font-semibold text-bio-dark">Consig. {r.consignacionNumero}</span>}
+                      <td data-label="Cliente" className="px-3 py-2">
+                        <span className="flex flex-col items-end sm:items-start">
+                          {r.clienteNombre ?? "Mostrador"}
+                          {r.consignacionNumero && <span className="mt-0.5 block max-w-fit rounded bg-bio-green/10 px-1.5 py-0.5 text-[10px] font-semibold text-bio-dark">Consig. {r.consignacionNumero}</span>}
+                        </span>
                       </td>
-                      <td className="px-3 py-2 font-mono text-xs">{r.codigo}</td>
-                      <td className="px-3 py-2">
+                      <td data-label="Código" className="px-3 py-2 font-mono text-xs">{r.codigo}</td>
+                      <td data-label="Producto" className="px-3 py-2">
                         {r.productoNombre} {r.cantidadPresentacion} {r.unidadMedida}
                       </td>
-                      <td className="px-3 py-2 text-right">{r.cantidad}</td>
-                      <td className="px-3 py-2">
+                      <td data-label="Cant." className="px-3 py-2 text-right">{r.cantidad}</td>
+                      <td data-label="Tipo" className="px-3 py-2">
                         <span className="rounded bg-stone-100 px-1.5 py-0.5 text-xs">{priceTypeLabel(r.tipoPrecio)}</span>
                       </td>
-                      <td className="px-3 py-2 text-right">{money(r.precioUnitario)}</td>
-                      <td className="px-3 py-2 text-right text-xs">{Number(r.descuentoPorcentaje) > 0 ? `${r.descuentoPorcentaje}%` : "—"}</td>
-                      <td className="px-3 py-2 text-right font-semibold">{money(r.detalleSubtotal)}</td>
+                      <td data-label="P. unit." className="px-3 py-2 text-right">{money(r.precioUnitario)}</td>
+                      <td data-label="Desc." className="px-3 py-2 text-right text-xs">{Number(r.descuentoPorcentaje) > 0 ? `${r.descuentoPorcentaje}%` : "—"}</td>
+                      <td data-label="Subtotal" className="px-3 py-2 text-right font-semibold">{money(r.detalleSubtotal)}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -103,7 +103,8 @@ body {
   }
 
   /* En celular cada fila pasa a ser una tarjeta. Cada <td> necesita data-label con el nombre de su columna;
-     sin data-label se muestra como título de la tarjeta y con data-label="" como pie de acciones. */
+     sin data-label sube como título de la tarjeta y con data-label="" queda como pie de acciones.
+     Un <td> con data-label debe tener un solo hijo: los hermanos se repartirían a lo ancho. */
   @media (max-width: 639px) {
     .table-stack {
       @apply !min-w-0;
@@ -112,12 +113,11 @@ body {
       display: none;
     }
     .table-stack,
-    .table-stack tbody,
-    .table-stack tr {
+    .table-stack tbody {
       display: block;
     }
     .table-stack tr {
-      @apply px-4 py-3;
+      @apply flex flex-col px-4 py-3;
     }
     .table-stack td {
       @apply flex items-center justify-between gap-4 !px-0 !py-1 text-right;
@@ -127,7 +127,7 @@ body {
       @apply shrink-0 text-left text-[11px] font-semibold uppercase tracking-wide text-stone-400;
     }
     .table-stack td:not([data-label]) {
-      @apply block !pb-1.5 text-left text-base;
+      @apply -order-1 block !pb-1.5 text-left !text-base font-semibold text-bio-dark;
     }
     .table-stack td:not([data-label])::before {
       content: none;

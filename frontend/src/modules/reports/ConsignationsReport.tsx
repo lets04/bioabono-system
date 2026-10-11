@@ -70,7 +70,7 @@ export function ConsignationsReport() {
 
       {!reportQuery.isLoading && !reportQuery.isError && reportQuery.data && (
         <>
-          <div className="grid gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div className="rounded-lg border border-stone-200 bg-white p-4">
               <div className="text-xs text-stone-500">Consignaciones</div>
               <div className="text-xl font-bold text-bio-dark">{reportQuery.data.summary.cantidadConsignaciones}</div>
@@ -98,7 +98,7 @@ export function ConsignationsReport() {
           <div className="overflow-hidden rounded-lg border border-stone-200 bg-white">
             <div className="bg-stone-50 px-4 py-2 text-xs font-semibold uppercase text-stone-500">Detalle — entregas, devoluciones y ventas por consignación</div>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1000px] text-left text-sm">
+              <table className="table-stack w-full min-w-[1000px] text-left text-sm">
                 <thead className="bg-stone-50 text-xs text-stone-500">
                   <tr>
                     <th className="px-3 py-2">Fecha</th>
@@ -117,19 +117,19 @@ export function ConsignationsReport() {
                 <tbody className="table-body divide-y divide-stone-100">
                   {reportQuery.data.rows.map((r, idx) => (
                     <tr key={`${r.id}-${r.presentacionId}-${idx}`}>
-                      <td className="px-3 py-2 text-xs">{new Date(r.fechaEntrega).toLocaleDateString("es-BO")}</td>
+                      <td data-label="Fecha" className="px-3 py-2 text-xs">{new Date(r.fechaEntrega).toLocaleDateString("es-BO")}</td>
                       <td className="px-3 py-2 font-mono text-xs">{r.numero}</td>
-                      <td className="px-3 py-2">{r.clienteNombre}</td>
-                      <td className="px-3 py-2 font-mono text-xs">{r.codigo}</td>
-                      <td className="px-3 py-2">
+                      <td data-label="Cliente" className="px-3 py-2">{r.clienteNombre}</td>
+                      <td data-label="Código" className="px-3 py-2 font-mono text-xs">{r.codigo}</td>
+                      <td data-label="Producto" className="px-3 py-2">
                         {r.productoNombre} {r.cantidadPresentacion} {r.unidadMedida}
                       </td>
-                      <td className="px-3 py-2 text-right">{r.cantidadEntregada}</td>
-                      <td className="px-3 py-2 text-right">{r.cantidadVendida}</td>
-                      <td className="px-3 py-2 text-right">{r.cantidadDevuelta}</td>
-                      <td className="px-3 py-2 text-right">{money(r.precioConsignacion)}</td>
-                      <td className="px-3 py-2 text-right font-semibold">{money(r.importeVendido)}</td>
-                      <td className="px-3 py-2">
+                      <td data-label="Entregado" className="px-3 py-2 text-right">{r.cantidadEntregada}</td>
+                      <td data-label="Vendido" className="px-3 py-2 text-right">{r.cantidadVendida}</td>
+                      <td data-label="Devuelto" className="px-3 py-2 text-right">{r.cantidadDevuelta}</td>
+                      <td data-label="P. consig." className="px-3 py-2 text-right">{money(r.precioConsignacion)}</td>
+                      <td data-label="Importe" className="px-3 py-2 text-right font-semibold">{money(r.importeVendido)}</td>
+                      <td data-label="Estado" className="px-3 py-2">
                         <span className={`rounded px-1.5 py-0.5 text-xs font-semibold ${r.estado === "PENDIENTE" ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"}`}>
                           {r.estado === "PENDIENTE" ? "Pendiente" : "Liquidada"}
                         </span>

@@ -64,7 +64,7 @@ export function InventoryReport() {
 
       {!reportQuery.isLoading && !reportQuery.isError && reportQuery.data ? (
         <>
-          <div className="grid gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
               ["Total presentaciones", reportQuery.data.summary.totalPresentaciones],
               ["Sin stock", reportQuery.data.summary.sinStock],
@@ -89,12 +89,12 @@ export function InventoryReport() {
           <div className="overflow-hidden rounded-lg border border-stone-200 bg-white">
             <div className="bg-stone-50 px-4 py-2 text-xs font-semibold uppercase text-stone-500">Detalle del inventario</div>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] text-left text-sm">
+              <table className="table-stack w-full min-w-[900px] text-left text-sm">
                 <thead className="bg-stone-50 text-xs text-stone-500"><tr><th className="px-4 py-2">Código</th><th className="px-4 py-2">Producto</th><th className="px-4 py-2">Cantidad</th><th className="px-4 py-2 text-right">Stock actual</th><th className="px-4 py-2 text-right">Mínimo</th><th className="px-4 py-2">Estado</th><th className="px-4 py-2">Categoría</th></tr></thead>
                 <tbody className="table-body divide-y divide-stone-100">
                   {reportQuery.data.rows.map((row) => {
                     const rowStatus = stockStatusLabel(row.stockActual, row.stockMinimo, "Stock bajo");
-                    return <tr key={row.id}><td className="px-4 py-2 font-mono text-xs font-semibold text-bio-dark">{row.codigo}</td><td className="px-4 py-2">{row.productoNombre}</td><td className="px-4 py-2">{row.cantidad} {row.unidadMedida}</td><td className="px-4 py-2 text-right font-semibold">{row.stockActual}</td><td className="px-4 py-2 text-right">{row.stockMinimo}</td><td className="px-4 py-2">{rowStatus}</td><td className="px-4 py-2 text-xs text-stone-500">{row.categoriaNombre ?? "—"}</td></tr>;
+                    return <tr key={row.id}><td className="px-4 py-2 font-mono text-xs font-semibold text-bio-dark">{row.codigo}</td><td data-label="Producto" className="px-4 py-2">{row.productoNombre}</td><td data-label="Cantidad" className="px-4 py-2">{row.cantidad} {row.unidadMedida}</td><td data-label="Stock actual" className="px-4 py-2 text-right font-semibold">{row.stockActual}</td><td data-label="Mínimo" className="px-4 py-2 text-right">{row.stockMinimo}</td><td data-label="Estado" className="px-4 py-2">{rowStatus}</td><td data-label="Categoría" className="px-4 py-2 text-xs text-stone-500">{row.categoriaNombre ?? "—"}</td></tr>;
                   })}
                 </tbody>
               </table>

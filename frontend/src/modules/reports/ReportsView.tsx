@@ -22,7 +22,12 @@ export function ReportsView() {
 
   return (
     <div className="grid gap-6">
-      <div role="tablist" aria-label="Tipo de reporte" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      {/* En celular: fila deslizable de pestañas compactas; desde sm: cuadrícula de tarjetas con descripción. */}
+      <div
+        role="tablist"
+        aria-label="Tipo de reporte"
+        className="-mx-4 flex gap-2 overflow-x-auto px-4 py-1 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-3 sm:overflow-visible sm:px-0 sm:py-0 lg:grid-cols-5"
+      >
         {tabs.map((t) => {
           const Icon = t.icon;
           const isActive = active === t.id;
@@ -34,15 +39,18 @@ export function ReportsView() {
               id={`tab-${t.id}`}
               aria-selected={isActive}
               aria-controls="report-panel"
-              onClick={() => setActive(t.id)}
-              className={`flex items-start gap-3 rounded-xl border p-4 text-left shadow-sm transition ${isActive ? "border-bio-green bg-white ring-2 ring-bio-green/20" : "border-stone-200 bg-white hover:border-bio-green/60"}`}
+              onClick={(event) => {
+                setActive(t.id);
+                event.currentTarget.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+              }}
+              className={`flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-left shadow-sm transition sm:items-start sm:gap-3 sm:p-4 ${isActive ? "border-bio-green bg-white ring-2 ring-bio-green/20" : "border-stone-200 bg-white hover:border-bio-green/60"}`}
             >
-              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${isActive ? "bg-bio-green text-white" : "bg-bio-green/10 text-bio-green"}`}>
-                <Icon size={18} />
+              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg sm:h-9 sm:w-9 ${isActive ? "bg-bio-green text-white" : "bg-bio-green/10 text-bio-green"}`}>
+                <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
               </span>
               <span className="min-w-0">
-                <span className={`block text-sm font-semibold ${isActive ? "text-bio-dark" : "text-stone-800"}`}>{t.label}</span>
-                <span className="block text-xs text-stone-500">{t.desc}</span>
+                <span className={`block whitespace-nowrap text-sm font-semibold sm:whitespace-normal ${isActive ? "text-bio-dark" : "text-stone-800"}`}>{t.label}</span>
+                <span className="hidden text-xs text-stone-500 sm:block">{t.desc}</span>
               </span>
             </button>
           );

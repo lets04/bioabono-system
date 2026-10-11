@@ -82,7 +82,7 @@ export function ProductReport() {
 
       {!reportQuery.isLoading && !reportQuery.isError && reportQuery.data && (
         <>
-          <div className="grid gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div className="rounded-lg border border-stone-200 bg-white p-4">
               <div className="text-xs text-stone-500">Productos base</div>
               <div className="text-xl font-bold text-bio-dark">{reportQuery.data.summary.totalProductos}</div>
@@ -116,7 +116,7 @@ export function ProductReport() {
           <div className="overflow-hidden rounded-lg border border-stone-200 bg-white">
             <div className="bg-stone-50 px-4 py-2 text-xs font-semibold uppercase text-stone-500">Presentaciones agrupadas por producto base</div>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1000px] text-left text-sm">
+              <table className="table-stack w-full min-w-[1000px] text-left text-sm">
                 <thead className="bg-stone-50 text-xs text-stone-500">
                   <tr>
                     <th className="px-4 py-2">Código</th>
@@ -137,19 +137,21 @@ export function ProductReport() {
                     return (
                       <tr key={r.id}>
                         <td className="px-4 py-2 font-mono text-xs font-semibold text-bio-dark">{r.codigo}</td>
-                        <td className="px-4 py-2">
-                          <div className="font-medium text-bio-dark">{r.productoNombre}</div>
-                          <div className="text-xs text-stone-500">{r.productoAbreviacion}</div>
+                        <td data-label="Producto" className="px-4 py-2">
+                          <div>
+                            <div className="font-medium text-bio-dark">{r.productoNombre}</div>
+                            <div className="text-xs text-stone-500">{r.productoAbreviacion}</div>
+                          </div>
                         </td>
-                        <td className="px-4 py-2 text-xs">{r.categoriaNombre ?? "—"}</td>
-                        <td className="px-4 py-2">
+                        <td data-label="Categoría" className="px-4 py-2 text-xs">{r.categoriaNombre ?? "—"}</td>
+                        <td data-label="Presentación" className="px-4 py-2">
                           {r.cantidad} {r.unidadMedida}
                         </td>
-                        <td className="px-4 py-2 text-right">{money(r.pvp)}</td>
-                        <td className="px-4 py-2 text-right text-xs">{r.ultimoPrecioCompra ? money(r.ultimoPrecioCompra) : "—"}</td>
-                        <td className="px-4 py-2 text-right font-semibold">{r.stockActual}</td>
-                        <td className="px-4 py-2 text-right">{r.stockMinimo}</td>
-                        <td className="px-4 py-2">
+                        <td data-label="PVP" className="px-4 py-2 text-right">{money(r.pvp)}</td>
+                        <td data-label="Últ. compra" className="px-4 py-2 text-right text-xs">{r.ultimoPrecioCompra ? money(r.ultimoPrecioCompra) : "—"}</td>
+                        <td data-label="Stock" className="px-4 py-2 text-right font-semibold">{r.stockActual}</td>
+                        <td data-label="Mín." className="px-4 py-2 text-right">{r.stockMinimo}</td>
+                        <td data-label="Estado" className="px-4 py-2">
                           <span className={`rounded-full px-2 py-1 text-xs font-semibold ${badge}`}>{estado}</span>
                         </td>
                       </tr>
