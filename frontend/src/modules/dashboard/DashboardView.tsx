@@ -86,7 +86,7 @@ export function DashboardView({ products, activeProducts, lowStock, isLoading, u
         <p className="text-sm text-stone-500">Este es el estado actual de tu inventario.</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <MetricCard label="Productos activos" value={fmt(activeProducts)} icon={Package} onClick={() => onNavigate("products")} />
         <MetricCard
           label="Stock bajo"
@@ -102,7 +102,7 @@ export function DashboardView({ products, activeProducts, lowStock, isLoading, u
 
       <section aria-labelledby="accesos">
         <h2 id="accesos" className="text-sm font-semibold uppercase tracking-wide text-stone-500">Accesos directos</h2>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5">
           {visibleShortcuts.map((item) => {
             const Icon = item.icon;
             return (
@@ -110,14 +110,14 @@ export function DashboardView({ products, activeProducts, lowStock, isLoading, u
                 key={item.label}
                 type="button"
                 onClick={() => onNavigate(item.view)}
-                className="group flex items-center gap-3 rounded-xl border border-stone-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-bio-green hover:shadow-md"
+                className="group flex items-center gap-2.5 rounded-xl border border-stone-200 bg-white p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-bio-green hover:shadow-md sm:gap-3 sm:p-4"
               >
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-bio-green/10 text-bio-green transition group-hover:bg-bio-green group-hover:text-white">
-                  <Icon size={22} />
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-bio-green/10 text-bio-green transition group-hover:bg-bio-green group-hover:text-white sm:h-11 sm:w-11">
+                  <Icon className="h-[18px] w-[18px] sm:h-[22px] sm:w-[22px]" />
                 </span>
                 <span className="min-w-0">
-                  <span className="block text-sm font-semibold text-stone-800">{item.label}</span>
-                  <span className="block truncate text-xs text-stone-500">{item.desc}</span>
+                  <span className="block text-sm font-semibold leading-snug text-stone-800">{item.label}</span>
+                  <span className="hidden truncate text-xs text-stone-500 sm:block">{item.desc}</span>
                 </span>
               </button>
             );

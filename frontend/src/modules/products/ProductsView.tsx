@@ -104,7 +104,7 @@ export function ProductsView({ products, categories, isLoading, isError, search,
       {!isLoading && !isError && (
         <div className="table-card">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-left text-sm">
+            <table className="table-stack w-full min-w-[900px] text-left text-sm">
               <thead className="table-head">
                 <tr>
                   <th className="px-4 py-3">Código</th>
@@ -122,12 +122,12 @@ export function ProductsView({ products, categories, isLoading, isError, search,
                 {filtered.map(({ product, pres }) => (
                   <tr key={pres.id}>
                     <td className="px-4 py-3 font-mono font-semibold text-bio-dark">{pres.codigo}</td>
-                    <td className="px-4 py-3">{product.nombre}</td>
-                    <td className="px-4 py-3 font-semibold">{product.abreviacion}</td>
-                    <td className="px-4 py-3">{pres.cantidad}</td>
-                    <td className="px-4 py-3">{pres.unidadMedida}</td>
-                    <td className="px-4 py-3 text-right font-medium">{money(pres.pvp)}</td>
-                    <td className="px-4 py-3 text-right">
+                    <td data-label="Producto" className="px-4 py-3">{product.nombre}</td>
+                    <td data-label="Abrev." className="px-4 py-3 font-semibold">{product.abreviacion}</td>
+                    <td data-label="Cantidad" className="px-4 py-3">{pres.cantidad}</td>
+                    <td data-label="Unidad" className="px-4 py-3">{pres.unidadMedida}</td>
+                    <td data-label="PVP" className="px-4 py-3 text-right font-medium">{money(pres.pvp)}</td>
+                    <td data-label="Stock" className="px-4 py-3 text-right">
                       {pres.stockActual <= pres.stockMinimo ? (
                         <span className="inline-flex items-center gap-1 font-semibold text-amber-700" title={`Stock bajo (mínimo ${pres.stockMinimo})`}>
                           <AlertTriangle size={13} aria-hidden="true" />
@@ -138,10 +138,10 @@ export function ProductsView({ products, categories, isLoading, isError, search,
                         pres.stockActual
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-label="Estado" className="px-4 py-3">
                       <StatusBadge active={product.activo && pres.activo} />
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-label="" className="px-4 py-3">
                       <div className="flex justify-end gap-2">
                         <IconButton label="Ver detalle" onClick={() => setSelected(product)} icon={Eye} />
                         {isAdmin && (

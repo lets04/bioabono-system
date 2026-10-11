@@ -192,7 +192,7 @@ export function ConsignationsView() {
         !consignationsQuery.isError && (
           <div className="table-card">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[820px] text-left text-sm">
+              <table className="table-stack w-full min-w-[820px] text-left text-sm">
 
                 <thead className="table-head">
                   <tr>
@@ -238,13 +238,13 @@ export function ConsignationsView() {
 
                         {/* CLIENTE */}
 
-                        <td className="px-4 py-3 font-medium text-stone-800">
+                        <td data-label="Cliente" className="px-4 py-3 font-medium text-stone-800">
                           {consignation.clienteNombre}
                         </td>
 
                         {/* FECHA */}
 
-                        <td className="px-4 py-3 text-stone-600">
+                        <td data-label="Fecha entrega" className="px-4 py-3 text-stone-600">
                           {new Date(
                             consignation.fechaEntrega,
                           ).toLocaleDateString("es-BO")}
@@ -252,13 +252,13 @@ export function ConsignationsView() {
 
                         {/* LÍNEAS */}
 
-                        <td className="px-4 py-3 text-right">
+                        <td data-label="Líneas" className="px-4 py-3 text-right">
                           {consignation.lineas}
                         </td>
 
                         {/* ESTADO */}
 
-                        <td className="px-4 py-3">
+                        <td data-label="Estado" className="px-4 py-3">
                           <span
                             className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
                               consignation.estado ===
@@ -276,7 +276,7 @@ export function ConsignationsView() {
 
                         {/* ACCIONES */}
 
-                        <td className="px-4 py-3">
+                        <td data-label="" className="px-4 py-3">
                           <div className="flex justify-end gap-2">
                             <IconButton
                               label="Imprimir"

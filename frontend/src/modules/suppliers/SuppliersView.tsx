@@ -81,7 +81,7 @@ export function SuppliersView({ suppliers, isLoading, isError, search, onSearch 
       {!isLoading && !isError && (
         <div className="table-card">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px] text-left text-sm">
+            <table className="table-stack w-full min-w-[820px] text-left text-sm">
               <thead className="table-head">
                 <tr>
                   <th className="px-4 py-3">Nombre</th>
@@ -96,13 +96,13 @@ export function SuppliersView({ suppliers, isLoading, isError, search, onSearch 
                 {suppliers.map((supplier) => (
                   <tr key={supplier.id}>
                     <td className="px-4 py-3 font-semibold text-bio-dark">{supplier.nombre}</td>
-                    <td className="px-4 py-3 text-stone-600">{supplier.nit || "—"}</td>
-                    <td className="px-4 py-3 text-stone-600">{supplier.telefono || "—"}</td>
-                    <td className="px-4 py-3 text-stone-600">{supplier.email || "—"}</td>
-                    <td className="px-4 py-3">
+                    <td data-label="NIT" className="px-4 py-3 text-stone-600">{supplier.nit || "—"}</td>
+                    <td data-label="Teléfono" className="px-4 py-3 text-stone-600">{supplier.telefono || "—"}</td>
+                    <td data-label="Email" className="break-all px-4 py-3 text-stone-600 sm:break-normal">{supplier.email || "—"}</td>
+                    <td data-label="Estado" className="px-4 py-3">
                       <StatusBadge active={supplier.activo} />
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-label="" className="px-4 py-3">
                       <div className="flex justify-end gap-2">
                         <IconButton label="Ver detalle" onClick={() => setSelected(supplier)} icon={Eye} />
                         <IconButton label="Editar" onClick={() => setEditing(supplier)} icon={Pencil} />

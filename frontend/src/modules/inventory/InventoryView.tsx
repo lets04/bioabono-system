@@ -106,7 +106,7 @@ export function InventoryView({ products, isLoading }: Props) {
       {!isLoading && (
         <div className="table-card">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px] text-left text-sm">
+            <table className="table-stack w-full min-w-[820px] text-left text-sm">
               <thead className="table-head">
                 <tr>
                   <th className="px-4 py-3">Código</th>
@@ -128,14 +128,16 @@ export function InventoryView({ products, isLoading }: Props) {
                   return (
                     <tr key={row.id} className={!row.activo ? "text-stone-400" : ""}>
                       <td className="px-4 py-3 font-mono font-semibold text-bio-dark">{row.codigo}</td>
-                      <td className="px-4 py-3">
-                        {row.nombre}
-                        {!row.activo && <span className="ml-2 rounded bg-stone-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-stone-500">Inactivo</span>}
+                      <td data-label="Producto" className="px-4 py-3">
+                        <span>
+                          {row.nombre}
+                          {!row.activo && <span className="ml-2 rounded bg-stone-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-stone-500">Inactivo</span>}
+                        </span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td data-label="Presentación" className="px-4 py-3">
                         {row.cantidad} {row.unidadMedida}
                       </td>
-                      <td className="px-4 py-3">
+                      <td data-label="Nivel de stock" className="px-4 py-3">
                         <div className="h-1.5 w-32 overflow-hidden rounded-full bg-stone-100" aria-hidden="true">
                           <div
                             className={`h-full rounded-full ${style.bar}`}
@@ -143,9 +145,9 @@ export function InventoryView({ products, isLoading }: Props) {
                           />
                         </div>
                       </td>
-                      <td className={`px-4 py-3 text-right font-semibold ${style.text}`}>{row.stockActual}</td>
-                      <td className="px-4 py-3 text-right text-stone-500">{row.stockMinimo}</td>
-                      <td className="px-4 py-3">
+                      <td data-label="Actual" className={`px-4 py-3 text-right font-semibold ${style.text}`}>{row.stockActual}</td>
+                      <td data-label="Mínimo" className="px-4 py-3 text-right text-stone-500">{row.stockMinimo}</td>
+                      <td data-label="Estado" className="px-4 py-3">
                         <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${style.badge}`}>
                           <LevelIcon size={14} />
                           {style.label}

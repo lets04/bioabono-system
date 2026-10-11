@@ -74,7 +74,7 @@ export function CategoriesView({ categories, isLoading, isError }: Props) {
       {!isLoading && !isError && (
         <div className="table-card">
           <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left text-sm">
+          <table className="table-stack w-full min-w-[640px] text-left text-sm">
             <thead className="table-head">
               <tr>
                 <th className="px-4 py-3">Nombre</th>
@@ -87,12 +87,12 @@ export function CategoriesView({ categories, isLoading, isError }: Props) {
               {categories.map((category) => (
                 <tr key={category.id}>
                   <td className="px-4 py-3 font-semibold text-bio-dark">{category.nombre}</td>
-                  <td className="px-4 py-3 text-stone-500">{category.descripcion || "Sin descripción"}</td>
-                  <td className="px-4 py-3">
+                  <td data-label="Descripción" className="px-4 py-3 text-stone-500">{category.descripcion || "Sin descripción"}</td>
+                  <td data-label="Estado" className="px-4 py-3">
                     <StatusBadge active={category.activo} />
                   </td>
                   {isAdmin && (
-                    <td className="px-4 py-3">
+                    <td data-label="" className="px-4 py-3">
                       <div className="flex justify-end gap-2">
                         <IconButton label="Editar" onClick={() => setEditing(category)} icon={Pencil} />
                         <IconButton

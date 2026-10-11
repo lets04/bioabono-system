@@ -67,7 +67,7 @@ export function PurchasesView() {
       {!purchasesQuery.isLoading && !purchasesQuery.isError && (
         <div className="table-card">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px] text-left text-sm">
+            <table className="table-stack w-full min-w-[820px] text-left text-sm">
               <thead className="table-head">
                 <tr>
                   <th className="px-4 py-3">N.º compra</th>
@@ -83,14 +83,14 @@ export function PurchasesView() {
                 {(purchasesQuery.data ?? []).map((purchase) => (
                   <tr key={purchase.id}>
                     <td className="px-4 py-3 font-mono font-semibold text-bio-dark">{purchase.numero}</td>
-                    <td className="px-4 py-3 text-stone-600">{new Date(purchase.fecha).toLocaleDateString("es-BO")}</td>
-                    <td className="px-4 py-3 font-medium text-stone-800">{purchase.proveedorNombre}</td>
-                    <td className="px-4 py-3 text-right">{purchase.lineas}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-bio-dark">{money(purchase.total)}</td>
-                    <td className="px-4 py-3">
+                    <td data-label="Fecha" className="px-4 py-3 text-stone-600">{new Date(purchase.fecha).toLocaleDateString("es-BO")}</td>
+                    <td data-label="Proveedor" className="px-4 py-3 font-medium text-stone-800">{purchase.proveedorNombre}</td>
+                    <td data-label="Líneas" className="px-4 py-3 text-right">{purchase.lineas}</td>
+                    <td data-label="Total" className="px-4 py-3 text-right font-semibold text-bio-dark">{money(purchase.total)}</td>
+                    <td data-label="Estado" className="px-4 py-3">
                       <span className="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800">{purchase.estado}</span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-label="" className="px-4 py-3">
                       <div className="flex justify-end gap-2">
                         <IconButton label="Ver detalle" onClick={() => handleSelect(purchase.id)} icon={Eye} />
                         <IconButton label="Imprimir" onClick={() => handlePrintFromList(purchase.id)} icon={Printer} />

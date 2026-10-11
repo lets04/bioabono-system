@@ -77,7 +77,7 @@ export function CustomersView({ customers, isLoading, isError, search, onSearch 
       {!isLoading && !isError && (
         <div className="table-card">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px] text-left text-sm">
+            <table className="table-stack w-full min-w-[820px] text-left text-sm">
               <thead className="table-head">
                 <tr>
                   <th className="px-4 py-3">Nombre</th>
@@ -92,13 +92,13 @@ export function CustomersView({ customers, isLoading, isError, search, onSearch 
                 {customers.map((customer) => (
                   <tr key={customer.id}>
                     <td className="px-4 py-3 font-semibold text-bio-dark">{customer.nombre}</td>
-                    <td className="px-4 py-3 text-stone-600">{customer.nitCi || "—"}</td>
-                    <td className="px-4 py-3 text-stone-600">{customer.telefono || "—"}</td>
-                    <td className="px-4 py-3 text-stone-600">{customer.email || "—"}</td>
-                    <td className="px-4 py-3">
+                    <td data-label="NIT/CI" className="px-4 py-3 text-stone-600">{customer.nitCi || "—"}</td>
+                    <td data-label="Teléfono" className="px-4 py-3 text-stone-600">{customer.telefono || "—"}</td>
+                    <td data-label="Email" className="break-all px-4 py-3 text-stone-600 sm:break-normal">{customer.email || "—"}</td>
+                    <td data-label="Estado" className="px-4 py-3">
                       <StatusBadge active={customer.activo} />
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-label="" className="px-4 py-3">
                       <div className="flex justify-end gap-2">
                         <IconButton label="Ver detalle" onClick={() => setSelected(customer)} icon={Eye} />
                         <IconButton label="Editar" onClick={() => setEditing(customer)} icon={Pencil} />

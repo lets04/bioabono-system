@@ -115,7 +115,7 @@ export function UsersView() {
       {!usersQuery.isLoading && !usersQuery.isError && users.length > 0 ? (
         <div className="table-card">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left text-sm">
+            <table className="table-stack w-full min-w-[760px] text-left text-sm">
               <thead className="table-head">
                 <tr>
                   <th className="px-4 py-3">Nombre</th>
@@ -129,14 +129,14 @@ export function UsersView() {
                 {users.map((user) => (
                   <tr key={user.id}>
                     <td className="px-4 py-3 font-medium text-bio-dark">{user.nombre}</td>
-                    <td className="px-4 py-3 text-stone-600">{user.username}</td>
-                    <td className="px-4 py-3">{user.rol === "ADMIN" ? "Administrador" : "Empleado"}</td>
-                    <td className="px-4 py-3">
+                    <td data-label="Correo" className="break-all px-4 py-3 text-stone-600 sm:break-normal">{user.username}</td>
+                    <td data-label="Rol" className="px-4 py-3">{user.rol === "ADMIN" ? "Administrador" : "Empleado"}</td>
+                    <td data-label="Estado" className="px-4 py-3">
                       <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass(user.estado)}`}>
                         {user.estado}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-label="" className="px-4 py-3">
                       <div className="flex justify-end gap-1">
                         {user.estado === "PENDIENTE" ? (
                           <IconButton label="Reenviar invitación" onClick={() => resendMutation.mutate(user.id)} icon={Mail} />
