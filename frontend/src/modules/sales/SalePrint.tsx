@@ -76,7 +76,12 @@ export function SalePrint({ sale, onClose }: { sale: SaleDetail; onClose: () => 
       </div>
 
 
-      <PrintFooter left="BIOABONO — Documento generado por el sistema" right="Comprobante de venta" />
+      <div className="print-total ml-auto mt-4 max-w-xs border-t-2 border-stone-800 pt-3 text-sm">
+        <div className="flex justify-between gap-6 py-1"><span>Subtotal</span><span>{money(sale.subtotal)}</span></div>
+        <div className="flex justify-between gap-6 py-1"><span>Descuento</span><span>{money(sale.descuentoTotal)}</span></div>
+        <div className="flex justify-between gap-6 border-t border-stone-400 pt-2 text-base font-bold"><span>TOTAL</span><span>{money(sale.total)}</span></div>
+      </div>
+      <PrintFooter left="SUPERMERCADO DEL BIOABONO" right="Nota de venta" />
     </PrintPreview>
   );
 }
