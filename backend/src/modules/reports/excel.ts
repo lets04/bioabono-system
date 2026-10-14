@@ -146,7 +146,7 @@ function addReportHeader(
 
   const subCell = ws.getCell(2, 3);
 
-  subCell.value = "Calle Reza #477 (Puente Cobija)  |  Celular: 67465453";
+  subCell.value = "Calle Reza #477 (Puente Cobija)  |  Celular: 67465453 - 57734743";
 
   subCell.font = {
     color: { argb: BIO_DARK },

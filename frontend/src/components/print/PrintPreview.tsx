@@ -99,6 +99,26 @@ export function PrintPreview({
             .print-hide {
               display: none !important;
             }
+              #${printAreaId} .print-document-header {
+  color: #111 !important;
+  border-color: #d6d6d6 !important;
+}
+
+#${printAreaId} .print-document-header img {
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+#${printAreaId} .print-document-header h1,
+#${printAreaId} .print-document-header h2 {
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+#${printAreaId} .print-document-header > div:first-child {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
           }
         `}
       </style>
@@ -119,17 +139,29 @@ export function PrintPreview({
         >
           <div className="print-hide flex h-16 shrink-0 items-center justify-between border-b border-stone-200 bg-white px-4 shadow-sm">
             <div className="min-w-0">
-              <h2 className="text-sm font-bold text-bio-dark sm:text-base">Vista previa — {title}</h2>
-              <p className="hidden text-xs text-stone-500 sm:block">Revisa el documento antes de imprimirlo</p>
+              <h2 className="text-sm font-bold text-bio-dark sm:text-base">
+                Vista previa — {title}
+              </h2>
+              <p className="hidden text-xs text-stone-500 sm:block">
+                Revisa el documento antes de imprimirlo
+              </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <button
                 type="button"
                 onClick={() => setIsPreviewFullscreen((current) => !current)}
                 className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-stone-300 text-stone-600 transition hover:bg-stone-100 hover:text-bio-dark"
-                title={isPreviewFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
+                title={
+                  isPreviewFullscreen
+                    ? "Salir de pantalla completa"
+                    : "Pantalla completa"
+                }
               >
-                {isPreviewFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                {isPreviewFullscreen ? (
+                  <Minimize2 size={18} />
+                ) : (
+                  <Maximize2 size={18} />
+                )}
               </button>
               <button
                 type="button"
@@ -146,13 +178,18 @@ export function PrintPreview({
                 title="Cerrar"
               >
                 <X size={18} className="sm:hidden" />
-                <span className="hidden text-sm font-semibold sm:inline">Cerrar</span>
+                <span className="hidden text-sm font-semibold sm:inline">
+                  Cerrar
+                </span>
               </button>
             </div>
           </div>
 
           <div className="print-scroll-area flex-1 overflow-auto bg-stone-200 p-4 sm:p-8">
-            <div id={printAreaId} className="print-document mx-auto min-h-[900px] w-full max-w-[1100px] bg-white p-6 text-stone-900 shadow-xl sm:p-8">
+            <div
+              id={printAreaId}
+              className="print-document mx-auto min-h-[900px] w-full max-w-[1100px] bg-white p-6 text-stone-900 shadow-xl sm:p-8"
+            >
               {children}
             </div>
           </div>
