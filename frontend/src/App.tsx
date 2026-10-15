@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useViewRoute } from "./hooks/useViewRoute";
-import { BarChart3, FolderTree, Handshake, LayoutDashboard, Package, Receipt, ShoppingCart, Truck, Users, Warehouse, UserCog } from "lucide-react";
+import { BarChart3, FolderTree, Handshake, LayoutDashboard, Package, Receipt, ShoppingCart, Truck, Users, Warehouse, UserCog, ListOrdered } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AppLayout } from "./layouts/AppLayout";
 import { Spinner } from "./components/ui/Spinner";
@@ -12,11 +12,11 @@ import { PurchasesView } from "./modules/purchases/PurchasesView";
 import { ConsignationsView } from "./modules/consignations/ConsignationsView";
 import { CustomersView } from "./modules/customers/CustomersView";
 import { SalesView } from "./modules/sales/SalesView";
+import { MovementsView } from "./modules/sales/MovementsView";
 import { InventoryView } from "./modules/inventory/InventoryView";
 import { ReportsView } from "./modules/reports/ReportsView";
 import { UsersView } from "./modules/users/UsersView";
 import { LoginView } from "./modules/auth/LoginView";
-import { ActivateAccountView } from "./modules/auth/ActivateAccountView";
 import { ForgotPasswordView } from "./modules/auth/ForgotPasswordView";
 import { ResetPasswordView } from "./modules/auth/ResetPasswordView";
 import { useAuth } from "./auth/AuthContext";
@@ -33,6 +33,7 @@ const allNavItems = [
   { id: "consignations", label: "Consignaciones", icon: Handshake, group: "Operaciones", description: "Entregas a consignatarios, devoluciones y liquidaciones" },
   { id: "purchases", label: "Compras", icon: ShoppingCart, group: "Operaciones", description: "Ingreso de mercadería de proveedores" },
   { id: "inventory", label: "Inventario", icon: Warehouse, group: "Operaciones", description: "Stock actual por presentación" },
+  { id: "movements", label: "Movimientos", icon: ListOrdered, group: "Operaciones", description: "Consulta las ventas recientes" },
   { id: "products", label: "Productos", icon: Package, group: "Catálogo", description: "Productos, presentaciones y precios" },
   { id: "categories", label: "Categorías", icon: FolderTree, group: "Catálogo", description: "Agrupa los productos del catálogo" },
   { id: "customers", label: "Clientes", icon: Users, group: "Contactos", description: "Directorio de clientes" },
@@ -43,7 +44,6 @@ const allNavItems = [
 
 function currentAuthPage() {
   const path = window.location.pathname;
-  if (path.startsWith("/activar-cuenta")) return "activate";
   if (path.startsWith("/olvide-contrasena")) return "forgot";
   if (path.startsWith("/recuperar-contrasena")) return "reset";
   return "app";
@@ -62,7 +62,6 @@ export function App() {
     );
   }
 
-  if (page === "activate") return <ActivateAccountView />;
   if (page === "forgot") return <ForgotPasswordView />;
   if (page === "reset") return <ResetPasswordView />;
   if (!user) return <LoginView />;
@@ -166,6 +165,8 @@ function AuthenticatedApp({ isAdmin, userName }: { isAdmin: boolean; userName: s
       )}
 
       {activeView === "sales" && <SalesView />}
+
+      {activeView === "movements" && <MovementsView isAdmin={isAdmin} />}
 
       {activeView === "reports" && isAdmin && <ReportsView />}
 

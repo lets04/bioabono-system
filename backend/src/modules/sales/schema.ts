@@ -23,3 +23,17 @@ export const saleCreateSchema = z.object({
 });
 
 export type SaleCreateInput = z.infer<typeof saleCreateSchema>;
+
+/** Rango cerrado-abierto para que una venta no se repita entre períodos contiguos. */
+export const saleMovementsFiltersSchema = z
+  .object({
+    from: z.string().datetime({ offset: true }),
+    to: z.string().datetime({ offset: true }),
+    usuarioId: z.coerce.number().int().positive().optional(),
+  })
+  .refine(({ from, to }) => new Date(from).getTime() < new Date(to).getTime(), {
+    message: "El período de movimientos no es válido",
+    path: ["to"],
+  });
+
+export type SaleMovementsFilters = z.infer<typeof saleMovementsFiltersSchema>;

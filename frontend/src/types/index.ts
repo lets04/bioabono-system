@@ -1,4 +1,4 @@
-export type View = "dashboard" | "products" | "categories" | "suppliers" | "purchases" | "consignations" | "customers" | "sales" | "inventory" | "reports" | "users";
+export type View = "dashboard" | "products" | "categories" | "suppliers" | "purchases" | "consignations" | "customers" | "sales" | "movements" | "inventory" | "reports" | "users";
 
 export type UserRole = "ADMIN" | "EMPLEADO";
 export type UserStatus = "PENDIENTE" | "ACTIVO" | "INACTIVO";
@@ -286,6 +286,27 @@ export type SaleCreatePayload = {
     descuentoPorcentaje?: string;
     tipoPrecio?: "PVP" | "CONTADO" | "MAYORISTA";
   }>;
+};
+
+export type SaleMovements = {
+  rows: Array<{
+    id: number;
+    numero: string;
+    fecha: string;
+    clienteNombre: string | null;
+    usuarioId: number;
+    usuarioNombre: string;
+    total: string;
+    descuentoTotal: string;
+    estado: string;
+    consignacionNumero: string | null;
+    lineas: number;
+  }>;
+  summary: {
+    cantidadVentas: number;
+    totalVentas: string;
+    totalDescuentos: string;
+  };
 };
 
 export type ReportFilters = {

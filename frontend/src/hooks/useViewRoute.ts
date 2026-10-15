@@ -5,6 +5,7 @@ import type { View } from "../types";
 export const viewPaths: Record<View, string> = {
   dashboard: "/",
   sales: "/ventas",
+  movements: "/movimientos",
   purchases: "/compras",
   inventory: "/inventario",
   products: "/productos",

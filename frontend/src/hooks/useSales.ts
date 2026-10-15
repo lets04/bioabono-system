@@ -11,3 +11,11 @@ export function useSales(search = "") {
     placeholderData: keepPreviousData,
   });
 }
+
+export function useSaleMovements(filters: { from: string; to: string; usuarioId?: string }) {
+  return useQuery({
+    queryKey: ["sale-movements", filters.from, filters.to, filters.usuarioId ?? ""],
+    queryFn: () => salesApi.movements(filters),
+    placeholderData: keepPreviousData,
+  });
+}

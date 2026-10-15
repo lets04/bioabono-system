@@ -1,7 +1,9 @@
-import { AlertTriangle, ArrowRight, BarChart3, Boxes, FolderTree, Handshake, Package, Receipt, ShoppingCart, Users, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, ArrowRight, Banknote, BarChart3, Boxes, Handshake, Package, Receipt, ShoppingCart, Users, CheckCircle2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { MetricCard } from "../../components/ui/MetricCard";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { useSaleMovements } from "../../hooks/useSales";
+import { money } from "../../utils/format";
 import type { Product, View } from "../../types";
 
 type Props = {
@@ -65,13 +67,20 @@ function greeting() {
   return "Buenas noches";
 }
 
+function todayRange() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  return { from: start.toISOString(), to: end.toISOString() };
+}
+
 export function DashboardView({ products, activeProducts, lowStock, isLoading, userName, availableViews, onNavigate }: Props) {
   const allPresentaciones = products.flatMap((p) => p.presentaciones.map((pres) => ({ ...pres, productoNombre: p.nombre, productoActivo: p.activo })));
   const lowStockPresentaciones = allPresentaciones
     .filter((pres) => pres.activo && pres.productoActivo && pres.stockActual <= pres.stockMinimo)
     .sort((a, b) => a.stockActual / Math.max(a.stockMinimo, 1) - b.stockActual / Math.max(b.stockMinimo, 1));
   const totalUnits = allPresentaciones.reduce((t, p) => t + p.stockActual, 0);
-  const categories = new Set(products.map((p) => p.categoriaId).filter(Boolean)).size;
+  const salesTodayQuery = useSaleMovements(todayRange());
   const visibleShortcuts = shortcuts.filter((s) => availableViews.includes(s.view));
   const firstName = userName.trim().split(/\s+/)[0];
   const fmt = (n: number) => (isLoading ? "—" : n.toLocaleString("es-BO"));
@@ -96,7 +105,13 @@ export function DashboardView({ products, activeProducts, lowStock, isLoading, u
           hint={isLoading ? undefined : lowStockHint}
           onClick={() => onNavigate("inventory")}
         />
-        <MetricCard label="Categorías en uso" value={fmt(categories)} icon={FolderTree} />
+        <MetricCard
+          label="Ventas del día"
+          value={salesTodayQuery.isLoading ? "—" : money(salesTodayQuery.data?.summary.totalVentas ?? 0)}
+          icon={Banknote}
+          hint={salesTodayQuery.data ? `${salesTodayQuery.data.summary.cantidadVentas} ${salesTodayQuery.data.summary.cantidadVentas === 1 ? "venta registrada" : "ventas registradas"}` : undefined}
+          onClick={() => onNavigate("movements")}
+        />
         <MetricCard label="Unidades en inventario" value={fmt(totalUnits)} icon={Boxes} onClick={() => onNavigate("inventory")} />
       </div>
 

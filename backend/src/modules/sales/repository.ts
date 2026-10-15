@@ -1,4 +1,4 @@
-import { asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ilike, inArray, lt, or, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import {
   consignations,
@@ -9,10 +9,12 @@ import {
   saleDetails,
   sales,
   auditLogs,
+  users,
 } from "../../db/schema/index.js";
 import { nextDocumentNumber } from "../../lib/documentNumber.js";
 import { adjustStock } from "../../lib/stock.js";
 import { derivedPriceCents, fromCents, type PriceType } from "../../lib/pricing.js";
+import type { SaleMovementsFilters } from "./schema.js";
 
 export async function listSales(search?: string) {
   const term = search?.trim();
@@ -55,6 +57,50 @@ export async function listSales(search?: string) {
     .groupBy(saleDetails.ventaId);
   const map = new Map(counts.map((c) => [c.ventaId, c.count]));
   return rows.map((r) => ({ ...r, lineas: map.get(r.id) ?? 0 }));
+}
+
+export async function listSaleMovements(filters: SaleMovementsFilters, usuarioId?: number) {
+  const rows = await db
+    .select({
+      id: sales.id,
+      numero: sales.numero,
+      fecha: sales.fecha,
+      clienteNombre: customers.nombre,
+      usuarioId: sales.usuarioId,
+      usuarioNombre: users.nombre,
+      total: sales.total,
+      descuentoTotal: sales.descuentoTotal,
+      estado: sales.estado,
+      consignacionNumero: consignations.numero,
+    })
+    .from(sales)
+    .leftJoin(customers, eq(sales.clienteId, customers.id))
+    .innerJoin(users, eq(sales.usuarioId, users.id))
+    .leftJoin(consignations, eq(sales.consignacionId, consignations.id))
+    .where(
+      and(
+        gte(sales.fecha, new Date(filters.from)),
+        lt(sales.fecha, new Date(filters.to)),
+        usuarioId ? eq(sales.usuarioId, usuarioId) : undefined,
+      ),
+    )
+    .orderBy(desc(sales.fecha), desc(sales.id));
+
+  const lineCounts = rows.length === 0
+    ? []
+    : await db
+      .select({ ventaId: saleDetails.ventaId, count: sql<number>`count(*)::int` })
+      .from(saleDetails)
+      .where(inArray(saleDetails.ventaId, rows.map((row) => row.id)))
+      .groupBy(saleDetails.ventaId);
+  const linesBySale = new Map(lineCounts.map((row) => [row.ventaId, row.count]));
+  const total = rows.reduce((sum, row) => sum + Number(row.total), 0).toFixed(2);
+  const descuentos = rows.reduce((sum, row) => sum + Number(row.descuentoTotal), 0).toFixed(2);
+
+  return {
+    rows: rows.map((row) => ({ ...row, lineas: linesBySale.get(row.id) ?? 0 })),
+    summary: { cantidadVentas: rows.length, totalVentas: total, totalDescuentos: descuentos },
+  };
 }
 
 export async function getSaleById(id: number) {

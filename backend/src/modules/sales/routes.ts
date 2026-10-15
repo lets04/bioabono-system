@@ -1,4 +1,5 @@
 import { Elysia } from "elysia";
+import { ZodError } from "zod";
 import { COMMON_ERRORS, mapDomainError, parseId, PRESENTATION_ERRORS, type SetLike } from "../../lib/http.js";
 import { requireAuth } from "../auth/plugin.js";
 import * as service from "./service.js";
@@ -11,11 +12,24 @@ const ERRORS = {
   CUSTOMER_INACTIVE: { status: 409, message: "El cliente está inactivo" },
 };
 
-const handleError = (error: unknown, set: SetLike) => mapDomainError(error, set, ERRORS);
+const handleError = (error: unknown, set: SetLike) => {
+  if (error instanceof ZodError) {
+    set.status = 400;
+    return { error: "VALIDATION_ERROR", message: error.issues[0]?.message ?? "Solicitud inválida" };
+  }
+  return mapDomainError(error, set, ERRORS);
+};
 
 export const salesModule = new Elysia({ prefix: "/sales" })
   .use(requireAuth)
   .get("/", ({ query }) => service.listSales(query.search as string | undefined))
+  .get("/movements", async ({ query, authUser, set }) => {
+    try {
+      return await service.listSaleMovements(query, authUser);
+    } catch (error) {
+      return handleError(error, set);
+    }
+  })
   .get("/:id", async ({ params, set }) => {
     try {
       return await service.getSale(parseId(params.id));

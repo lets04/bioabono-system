@@ -1,11 +1,19 @@
 import * as repository from "./repository.js";
-import { saleCreateSchema } from "./schema.js";
+import { saleCreateSchema, saleMovementsFiltersSchema } from "./schema.js";
 import { db } from "../../db/index.js";
 import { customers } from "../../db/schema/index.js";
 import { eq } from "drizzle-orm";
+import type { AuthUser } from "../auth/types.js";
 
 export async function listSales(search?: string) {
   return repository.listSales(search);
+}
+
+export async function listSaleMovements(query: unknown, authUser: AuthUser) {
+  const filters = saleMovementsFiltersSchema.parse(query);
+  // Solo el administrador puede aplicar un filtro por responsable; todos ven el movimiento general.
+  const usuarioId = authUser.rol === "ADMIN" ? filters.usuarioId : undefined;
+  return repository.listSaleMovements(filters, usuarioId);
 }
 
 export async function getSale(id: number) {
